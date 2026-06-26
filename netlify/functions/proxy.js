@@ -1,29 +1,27 @@
 /**
- * Netlify Function: proxy.js  (API-Football v3 edition)
+ * Netlify Function: proxy.js  (football-data.org v4 edition)
  *
- * Proxies to https://v3.football.api-sports.io and normalises responses
- * to the internal format the frontend expects.
+ * Uses the FREE football-data.org API — World Cup is included at no cost.
+ * One API call fetches all matches + embedded goals & bookings, so we stay
+ * well within the 10 req/minute rate limit.
  *
  * Required env var (Netlify → Site configuration → Environment variables):
- *   API_FOOTBALL_KEY = your key from dashboard.api-football.com
+ *   API_FOOTBALL_KEY = your key from football-data.org/client/register
  *
- * Free plan: 100 requests/day — sufficient because:
- *   - Fixtures are cached 60 s (live) → ~1 req/minute at most
- *   - Match events cached 6 h → fetched once per completed match, ever
- *   - Browser localStorage also caches events across cold starts
+ * football-data.org free tier: no daily cap, 10 requests/minute.
+ * We cache the full match list for 60 s, so at most 1 req/minute in practice.
  */
 
 'use strict';
 const https = require('https');
 
-const API_BASE   = 'https://v3.football.api-sports.io';
-const WC_LEAGUE  = 1;      // FIFA World Cup in API-Football
-const WC_SEASON  = 2026;
+const API_BASE     = 'https://api.football-data.org/v4';
+const WC_CODE      = 'WC';   // football-data.org competition code for FIFA World Cup
+const WC_SEASON    = 2026;
 
-// In-memory cache (survives ~26 min Netlify warm window)
+// In-memory cache (persists for ~26 min Netlify warm window)
 const cache = new Map();
-const TTL_FIXTURES = 60;        // 60 s — live/upcoming data
-const TTL_EVENTS   = 6 * 3600;  // 6 h  — completed match events never change
+const TTL_MATCHES = 60; // seconds — refresh live scores every minute
 
 // ---------------------------------------------------------------------------
 // Handler
@@ -45,12 +43,12 @@ exports.handler = async (event) => {
       statusCode: 500,
       headers: CORS,
       body: JSON.stringify({
-        error: 'API key not set. Add API_FOOTBALL_KEY to Netlify → Site configuration → Environment variables.',
+        error: 'API key not configured. Add API_FOOTBALL_KEY to Netlify → Site configuration → Environment variables.',
       }),
     };
   }
 
-  const svParams = event.queryStringParameters        || {};
+  const svParams = event.queryStringParameters || {};
   const mvParams = event.multiValueQueryStringParameters || {};
   const endpoint = svParams._endpoint;
 
@@ -59,36 +57,27 @@ exports.handler = async (event) => {
   }
 
   try {
-    let data;
+    // All data comes from one API call — we cache the full payload
+    const { matches, eventsByMatchId, teams } = await getAllData(apiKey);
 
+    let data;
     if (endpoint === 'matches') {
-      data = await cachedFixtures(apiKey);
+      data = matches;
     } else if (endpoint === 'teams') {
-      // Derive teams list from fixtures (saves an API call)
-      const fixtures = await cachedFixtures(apiKey);
-      const seen = {};
-      data = [];
-      for (const m of fixtures) {
-        if (m.home_team && !seen[m.home_team.id]) { seen[m.home_team.id] = true; data.push(m.home_team); }
-        if (m.away_team && !seen[m.away_team.id]) { seen[m.away_team.id] = true; data.push(m.away_team); }
-      }
+      data = teams;
     } else if (endpoint === 'match_events') {
-      // Collect fixture IDs from multi-value params
+      // Return events for the requested match IDs — served from cache, no extra API calls
       const ids = (mvParams['match_ids[]'] || [])
         .concat(svParams['match_ids[]'] ? [svParams['match_ids[]']] : [])
         .map(Number)
         .filter(Boolean);
-
-      data = await fetchEventsForFixtures(apiKey, ids);
+      data = ids.flatMap(id => eventsByMatchId[id] || []);
     } else {
       return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: `Unknown endpoint: ${endpoint}` }) };
     }
 
-    return {
-      statusCode: 200,
-      headers: CORS,
-      body: JSON.stringify({ data }),
-    };
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ data }) };
+
   } catch (err) {
     console.error('Proxy error:', err.message);
     return {
@@ -100,53 +89,46 @@ exports.handler = async (event) => {
 };
 
 // ---------------------------------------------------------------------------
-// Fixtures (all WC 2026 matches)
+// Fetch + cache all WC 2026 data in one API call
 // ---------------------------------------------------------------------------
-async function cachedFixtures(apiKey) {
-  const key = 'fixtures';
+async function getAllData(apiKey) {
+  const CACHE_KEY = 'wc2026_all';
   const now = Math.floor(Date.now() / 1000);
-  const hit = cache.get(key);
-  if (hit && (now - hit.ts) < TTL_FIXTURES) return hit.data;
+  const hit = cache.get(CACHE_KEY);
+  if (hit && (now - hit.ts) < TTL_MATCHES) return hit.data;
 
-  const raw = await apiFetch(apiKey, `/fixtures?league=${WC_LEAGUE}&season=${WC_SEASON}&timezone=UTC`);
-  const data = (raw.response || []).map(normFixture);
-  cache.set(key, { data, ts: now });
+  const raw = await apiFetch(apiKey, `/competitions/${WC_CODE}/matches?season=${WC_SEASON}`);
+  const rawMatches = raw.matches || [];
+
+  const matches         = rawMatches.map(normMatch);
+  const eventsByMatchId = {};
+  for (const m of rawMatches) {
+    eventsByMatchId[m.id] = extractEvents(m);
+  }
+
+  // Derive unique teams from the match list
+  const teamsSeen = {};
+  for (const nm of matches) {
+    if (nm.home_team?.id && !teamsSeen[nm.home_team.id]) teamsSeen[nm.home_team.id] = nm.home_team;
+    if (nm.away_team?.id && !teamsSeen[nm.away_team.id]) teamsSeen[nm.away_team.id] = nm.away_team;
+  }
+  const teams = Object.values(teamsSeen);
+
+  const data = { matches, eventsByMatchId, teams };
+  cache.set(CACHE_KEY, { data, ts: now });
   return data;
 }
 
 // ---------------------------------------------------------------------------
-// Events (cards, goals) — fetched per fixture, cached individually
-// ---------------------------------------------------------------------------
-async function fetchEventsForFixtures(apiKey, fixtureIds) {
-  const all = [];
-  const now = Math.floor(Date.now() / 1000);
-
-  for (const fid of fixtureIds) {
-    const key = `events_${fid}`;
-    const hit = cache.get(key);
-    if (hit && (now - hit.ts) < TTL_EVENTS) {
-      all.push(...hit.data);
-      continue;
-    }
-
-    const raw = await apiFetch(apiKey, `/fixtures/events?fixture=${fid}`);
-    const evts = (raw.response || []).map(e => normEvent(fid, e));
-    cache.set(key, { data: evts, ts: now });
-    all.push(...evts);
-  }
-  return all;
-}
-
-// ---------------------------------------------------------------------------
-// Raw API call
+// Raw HTTPS call to football-data.org
 // ---------------------------------------------------------------------------
 function apiFetch(apiKey, path) {
   return new Promise((resolve, reject) => {
     const url = `${API_BASE}${path}`;
     const req = https.get(url, {
       headers: {
-        'x-apisports-key': apiKey,
-        'Accept': 'application/json',
+        'X-Auth-Token': apiKey,
+        'Accept':       'application/json',
       },
     }, (res) => {
       let raw = '';
@@ -156,126 +138,185 @@ function apiFetch(apiKey, path) {
         try { body = JSON.parse(raw); } catch (e) {
           return reject(new Error(`JSON parse error (HTTP ${res.statusCode}): ${raw.substring(0, 200)}`));
         }
-
-        if (res.statusCode === 401 || (body.errors && body.errors.token)) {
+        if (res.statusCode === 400 && body.message) {
+          return reject(new Error(`football-data.org: ${JSON.stringify(body)}`));
+        }
+        if (res.statusCode === 401) {
           return reject(new Error(
-            `API-Football: invalid API key (${res.statusCode}). ` +
-            `Check API_FOOTBALL_KEY in Netlify. Raw: ${JSON.stringify(body.errors || body).substring(0,200)}`
+            `football-data.org: invalid API key (401). ` +
+            `Check API_FOOTBALL_KEY in Netlify. Raw: ${raw.substring(0, 200)}`
           ));
         }
+        if (res.statusCode === 403) {
+          return reject(new Error(
+            `football-data.org: access denied (403) — "${body.message || raw.substring(0,150)}". ` +
+            `World Cup should be free; check your account tier at football-data.org.`
+          ));
+        }
+        if (res.statusCode === 429) {
+          return reject(new Error('football-data.org: rate limit hit (429). Will retry on next request.'));
+        }
         if (res.statusCode !== 200) {
-          return reject(new Error(`API-Football HTTP ${res.statusCode}: ${JSON.stringify(body).substring(0,300)}`));
+          return reject(new Error(`football-data.org HTTP ${res.statusCode}: ${raw.substring(0, 300)}`));
         }
-        if (body.errors && Object.keys(body.errors).length > 0) {
-          return reject(new Error(`API-Football error: ${JSON.stringify(body.errors)}`));
-        }
-
         resolve(body);
       });
     });
     req.on('error', reject);
-    req.setTimeout(12000, () => { req.destroy(); reject(new Error(`Timeout: ${url}`)); });
+    req.setTimeout(15000, () => { req.destroy(); reject(new Error(`Request timed out: ${url}`)); });
   });
 }
 
 // ---------------------------------------------------------------------------
-// Normalisers — convert API-Football format to internal format
+// Normalisers — convert football-data.org v4 format to our internal format
 // ---------------------------------------------------------------------------
 
-function normFixture(f) {
-  const fix   = f.fixture   || {};
-  const lge   = f.league    || {};
-  const teams = f.teams     || {};
-  const goals = f.goals     || {};
-  const score = f.score     || {};
-  const pen   = score.penalty || {};
-  const hasPen = pen.home != null && pen.away != null;
+function normMatch(m) {
+  const score = m.score || {};
+  const ft    = score.fullTime  || {};
+  const et    = score.extraTime || {};
+  const pens  = score.penalties || {};
+  const hasPen = pens.home != null && pens.away != null;
 
   return {
-    id:              fix.id,
-    status:          normStatus(fix.status?.short),
-    round:           normRound(lge.round || ''),
-    group:           extractGroup(lge.round || ''),
-    date:            fix.date ? fix.date.split('T')[0] : '',
-    time:            fix.date ? fix.date.split('T')[1]?.substring(0, 5) : '',
-    home_team:       { id: teams.home?.id, name: teams.home?.name || 'TBD' },
-    away_team:       { id: teams.away?.id, name: teams.away?.name || 'TBD' },
-    home_team_score: goals.home ?? 0,
-    away_team_score: goals.away ?? 0,
-    home_team_score_p: hasPen ? pen.home : null,
-    away_team_score_p: hasPen ? pen.away : null,
+    id:              m.id,
+    status:          normStatus(m.status),
+    round:           normStage(m.stage || ''),
+    group:           normGroup(m.group || ''),
+    date:            m.utcDate ? m.utcDate.split('T')[0] : '',
+    time:            m.utcDate ? m.utcDate.split('T')[1]?.substring(0, 5) : '',
+    home_team:       { id: m.homeTeam?.id, name: m.homeTeam?.name || 'TBD' },
+    away_team:       { id: m.awayTeam?.id, name: m.awayTeam?.name || 'TBD' },
+    // Full-time score (includes extra time goals if AET, excludes shootout)
+    home_team_score: ft.home ?? 0,
+    away_team_score: ft.away ?? 0,
+    // Penalty shootout score (null if no shootout)
+    home_team_score_p: hasPen ? pens.home : null,
+    away_team_score_p: hasPen ? pens.away : null,
     decided_by_penalties: hasPen,
-    _raw_status: fix.status?.short,
   };
 }
 
 function normStatus(s) {
-  const map = {
-    'FT':  'Final',       // full time
-    'AET': 'Final',       // after extra time
-    'PEN': 'Final',       // after penalties
-    'AWD': 'Final',       // awarded
-    '1H':  'In Progress', 'HT': 'In Progress', '2H': 'In Progress',
-    'ET':  'In Progress', 'BT': 'In Progress', 'P':  'In Progress',
-    'LIVE':'In Progress',
-    'NS':  'Scheduled',   // not started
-    'TBD': 'Scheduled',
-    'PST': 'Postponed',
-    'CANC':'Cancelled',
-  };
-  return map[s] || s || 'Scheduled';
+  switch (s) {
+    case 'FINISHED':   return 'Final';
+    case 'IN_PLAY':
+    case 'PAUSED':
+    case 'EXTRA_TIME':
+    case 'PENALTY_SHOOTOUT': return 'In Progress';
+    case 'TIMED':
+    case 'SCHEDULED':  return 'Scheduled';
+    case 'POSTPONED':  return 'Postponed';
+    case 'CANCELLED':  return 'Cancelled';
+    case 'SUSPENDED':  return 'Suspended';
+    default:           return s || 'Scheduled';
+  }
 }
 
-function normRound(round) {
-  // API-Football round strings e.g. "Group Stage - 1", "Round of 32", "Quarter-finals", "Semi-finals", "3rd Place Final", "Final"
-  const r = round.toLowerCase();
-  if (r.includes('group'))    return 'Group Stage';
-  if (r.includes('32'))       return 'Round of 32';
-  if (r.includes('16'))       return 'Round of 16';
-  if (r.includes('quarter'))  return 'Quarter-Final';
-  if (r.includes('semi'))     return 'Semi-Final';
-  if (r.includes('3rd') || r.includes('third')) return 'Third Place';
-  if (r === 'final')          return 'Final';
-  return round;
+function normStage(stage) {
+  switch (stage) {
+    case 'GROUP_STAGE':      return 'Group Stage';
+    case 'LAST_32':          return 'Round of 32';
+    case 'LAST_16':          return 'Round of 16';
+    case 'QUARTER_FINALS':   return 'Quarter-Final';
+    case 'SEMI_FINALS':      return 'Semi-Final';
+    case 'THIRD_PLACE':      return 'Third Place';
+    case 'FINAL':            return 'Final';
+    default:                 return stage || 'Unknown';
+  }
 }
 
-function extractGroup(round) {
-  // "Group Stage - A" → "A", "Group A" → "A"
-  const m = round.match(/group\s+(?:stage\s*[-–]?\s*)?([A-La-l])\b/i);
-  return m ? m[1].toUpperCase() : null;
+function normGroup(g) {
+  // "GROUP_A" → "A"
+  return g.replace(/^GROUP_/, '') || null;
 }
 
-function normEvent(fixtureId, e) {
-  const type   = (e.type   || '').toLowerCase();
-  const detail = (e.detail || '').toLowerCase();
+/**
+ * Extract goals and bookings from a match object and return them as
+ * normalised event objects compatible with the frontend scoring engine.
+ */
+function extractEvents(m) {
+  const events = [];
 
-  let normType, normSubType;
+  // ---- Goals ----
+  for (const g of (m.goals || [])) {
+    const subType = g.type === 'PENALTY'   ? 'penalty'
+                  : g.type === 'OWN_GOAL' ? 'own_goal'
+                  : 'normal';
 
-  if (type === 'goal') {
-    normType    = 'goal';
-    normSubType = detail.includes('penalty') ? 'penalty'
-                : detail.includes('own')     ? 'own_goal'
-                : 'normal';
-  } else if (type === 'card') {
-    normType    = detail.includes('red') ? 'red_card' : 'yellow_card';
-    normSubType = null;
-  } else if (type === 'var') {
-    // VAR decision — ignore for scoring purposes
-    normType    = 'var';
-    normSubType = detail;
-  } else {
-    normType    = type;
-    normSubType = detail;
+    events.push({
+      id:        `${m.id}_goal_${g.minute}_${g.scorer?.id || Math.random()}`,
+      match_id:  m.id,
+      type:      'goal',
+      sub_type:  subType,
+      goal_type: subType,
+      team_id:   g.team?.id,
+      player_id: g.scorer?.id || `scorer_${Math.random()}`,
+      minute:    g.minute || 0,
+    });
   }
 
-  return {
-    id:        `${fixtureId}_${e.time?.elapsed}_${e.team?.id}_${e.player?.id}`,
-    match_id:  fixtureId,
-    type:      normType,
-    sub_type:  normSubType,
-    goal_type: normSubType,        // alias used by scoring engine
-    team_id:   e.team?.id   ?? null,
-    player_id: e.player?.id ?? `anon_${fixtureId}_${Math.random()}`,
-    minute:    e.time?.elapsed ?? 0,
-  };
+  // ---- Bookings (cards) ----
+  for (const b of (m.bookings || [])) {
+    const cardType = b.card; // "YELLOW_CARD", "YELLOW_RED_CARD", "RED_CARD"
+
+    if (cardType === 'YELLOW_CARD' || cardType === 'YELLOW_RED_CARD') {
+      // Emit a yellow_card event.
+      // football-data.org sends BOTH the initial YELLOW_CARD and the YELLOW_RED_CARD
+      // for the same player, so the engine will see two yellows → 2 pts total. ✓
+      events.push({
+        id:        `${m.id}_card_${b.minute}_${b.player?.id || Math.random()}_yellow`,
+        match_id:  m.id,
+        type:      'yellow_card',
+        sub_type:  null,
+        team_id:   b.team?.id,
+        player_id: b.player?.id || `player_${Math.random()}`,
+        minute:    b.minute || 0,
+      });
+    } else if (cardType === 'RED_CARD') {
+      events.push({
+        id:        `${m.id}_card_${b.minute}_${b.player?.id || Math.random()}_red`,
+        match_id:  m.id,
+        type:      'red_card',
+        sub_type:  null,
+        team_id:   b.team?.id,
+        player_id: b.player?.id || `player_${Math.random()}`,
+        minute:    b.minute || 0,
+      });
+    }
+  }
+
+  // ---- Penalty shootout goals (synthetic events) ----
+  // football-data.org gives us the total scored in each shootout but not
+  // individual kicks. We generate synthetic events by team so the
+  // Penalties Scored leaderboard counts them correctly.
+  const pens = m.score?.penalties;
+  if (pens && pens.home != null && pens.away != null) {
+    for (let i = 0; i < pens.home; i++) {
+      events.push({
+        id:        `${m.id}_pso_home_${i}`,
+        match_id:  m.id,
+        type:      'penalty_kick',
+        sub_type:  'scored',
+        team_id:   m.homeTeam?.id,
+        player_id: `pso_home_${m.id}_${i}`,
+        minute:    120 + i,
+        missed:    false,
+      });
+    }
+    for (let i = 0; i < pens.away; i++) {
+      events.push({
+        id:        `${m.id}_pso_away_${i}`,
+        match_id:  m.id,
+        type:      'penalty_kick',
+        sub_type:  'scored',
+        team_id:   m.awayTeam?.id,
+        player_id: `pso_away_${m.id}_${i}`,
+        minute:    120 + i,
+        missed:    false,
+      });
+    }
+  }
+
+  return events;
 }
