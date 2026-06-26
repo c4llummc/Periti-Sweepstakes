@@ -1,0 +1,1818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⚽ World Cup 2026 Sweepstake</title>
+  <style>
+    /* =====================================================================
+       RESET & BASE
+       ===================================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #080c18;
+      --surface:     #111827;
+      --surface2:    #1a2236;
+      --border:      #1e2d45;
+      --accent:      #f59e0b;
+      --accent-dim:  #92400e;
+      --blue:        #3b82f6;
+      --green:       #22c55e;
+      --green-dim:   #14532d;
+      --red:         #ef4444;
+      --yellow:      #facc15;
+      --text:        #e2e8f0;
+      --text-muted:  #64748b;
+      --text-dim:    #94a3b8;
+      --gold:        #fbbf24;
+      --silver:      #94a3b8;
+      --bronze:      #c2713a;
+      --radius:      10px;
+      --tab-radius:  999px;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    /* =====================================================================
+       LAYOUT
+       ===================================================================== */
+    .app-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 24px 16px;
+      text-align: center;
+      position: relative;
+    }
+    .app-header h1 {
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, var(--gold), #fff, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .app-header .subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+    .disclaimer {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+
+    .main-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px 16px 60px;
+    }
+
+    /* =====================================================================
+       TABS
+       ===================================================================== */
+    .tab-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 20px;
+      padding: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .tab-btn {
+      flex: 0 0 auto;
+      padding: 7px 15px;
+      border-radius: var(--tab-radius);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      background: var(--surface2);
+      color: var(--text);
+      border-color: #2d3f5e;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #1d4ed8, #7c3aed);
+      color: #fff;
+      border-color: transparent;
+      font-weight: 600;
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* =====================================================================
+       LOADING / ERROR
+       ===================================================================== */
+    .loading-state, .error-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .loading-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-state p { color: var(--text-muted); }
+    .error-state .error-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .error-state h3 { color: var(--red); margin-bottom: 8px; }
+    .error-state p { color: var(--text-muted); font-size: 0.85rem; max-width: 500px; margin: 0 auto; }
+    .error-state code { background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+
+    /* =====================================================================
+       CARDS / SURFACES
+       ===================================================================== */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* =====================================================================
+       LEADERBOARD TABLE
+       ===================================================================== */
+    .lb-table-wrap { overflow-x: auto; }
+    .lb-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .lb-table th {
+      text-align: left;
+      padding: 8px 10px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .lb-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: middle;
+    }
+    .lb-table tr:last-child td { border-bottom: none; }
+    .lb-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+    /* Rank column */
+    .rank-cell {
+      width: 36px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .rank-1  { color: var(--gold);   font-size: 1.1em; }
+    .rank-2  { color: var(--silver); font-size: 1.05em; }
+    .rank-3  { color: var(--bronze); }
+
+    .team-cell { display: flex; align-items: center; gap: 8px; }
+    .flag { font-size: 1.2em; }
+    .person-name { font-weight: 600; }
+    .country-name { color: var(--text-muted); font-size: 0.78rem; }
+
+    .metric-cell {
+      text-align: right;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      min-width: 60px;
+    }
+    .metric-dash { color: var(--text-muted); }
+    .prize-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #854d0e, #ca8a04);
+      color: #fef3c7;
+      white-space: nowrap;
+    }
+    .pred-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      background: rgba(99, 102, 241, 0.25);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .note-cell {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* =====================================================================
+       OVERVIEW TAB
+       ===================================================================== */
+    .podium-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 500px) {
+      .podium-grid { grid-template-columns: 1fr; }
+    }
+    .podium-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+    .podium-card.p1 { border-color: var(--gold); box-shadow: 0 0 16px rgba(251,191,36,0.15); }
+    .podium-card.p2 { border-color: var(--silver); }
+    .podium-card.p3 { border-color: var(--bronze); }
+    .podium-medal { font-size: 2rem; margin-bottom: 4px; }
+    .podium-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+    .podium-person { font-size: 1.05rem; font-weight: 700; margin: 4px 0 2px; }
+    .podium-team { font-size: 0.85rem; color: var(--text-dim); }
+    .podium-prize { font-size: 0.8rem; font-weight: 700; color: var(--gold); margin-top: 4px; }
+    .podium-tbd { color: var(--text-muted); font-style: italic; font-size: 0.85rem; }
+
+    .bonus-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px;
+    }
+    .bonus-mini-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .bonus-mini-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 4px; }
+    .bonus-mini-person { font-weight: 700; font-size: 0.9rem; }
+    .bonus-mini-value { font-size: 0.78rem; color: var(--text-dim); }
+    .bonus-mini-prize { font-size: 0.72rem; color: var(--gold); font-weight: 600; }
+
+    /* =====================================================================
+       FIXTURES TAB
+       ===================================================================== */
+    .sim-toolbar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .sim-toolbar label { font-size: 0.85rem; color: var(--text-dim); display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .toggle {
+      position: relative;
+      display: inline-block;
+      width: 40px; height: 22px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: var(--border);
+      border-radius: 999px;
+      transition: 0.2s;
+      cursor: pointer;
+    }
+    .toggle-slider:before {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--blue); }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(18px); }
+    .btn {
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: var(--border); color: var(--text); }
+    .btn-danger { border-color: #7f1d1d; color: var(--red); }
+    .btn-danger:hover { background: rgba(239,68,68,0.1); }
+    .sim-note { font-size: 0.75rem; color: var(--text-muted); margin-left: auto; }
+
+    .round-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      margin: 20px 0 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .round-header span { background: var(--surface); padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border); }
+
+    .fixture-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      position: relative;
+    }
+    .fixture-row.completed { opacity: 0.85; }
+    .fixture-row.live { border-color: var(--green); box-shadow: 0 0 10px rgba(34,197,94,0.15); }
+    .fixture-row.predicted { border-color: rgba(99,102,241,0.4); }
+
+    .fixture-team {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .fixture-team.away { flex-direction: row-reverse; text-align: right; }
+    .fixture-team .flag { font-size: 1.1em; }
+
+    .fixture-score-area {
+      text-align: center;
+      min-width: 90px;
+    }
+    .fixture-score {
+      font-size: 1.1rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 2px;
+    }
+    .fixture-score.result { color: var(--text); }
+    .fixture-score.live-score { color: var(--green); }
+    .fixture-date { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; }
+    .fixture-status {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .status-final     { background: rgba(255,255,255,0.07); color: var(--text-muted); }
+    .status-live      { background: rgba(34,197,94,0.2); color: var(--green); animation: pulse 1.5s infinite; }
+    .status-scheduled { background: rgba(59,130,246,0.15); color: #93c5fd; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    /* Score inputs for predictions */
+    .score-inputs { display: flex; align-items: center; gap: 4px; }
+    .score-input {
+      width: 36px;
+      text-align: center;
+      padding: 4px 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: #a5b4fc;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .score-input:focus { outline: none; border-color: var(--blue); }
+    .score-sep { color: var(--text-muted); font-weight: 700; }
+    .pred-extra {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: rgba(99,102,241,0.07);
+      border: 1px solid rgba(99,102,241,0.15);
+      border-radius: 6px;
+      font-size: 0.72rem;
+    }
+    .pred-extra-group { display: flex; align-items: center; gap: 4px; color: var(--text-muted); }
+    .pred-extra-input {
+      width: 32px;
+      text-align: center;
+      padding: 2px 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-dim);
+      font-size: 0.78rem;
+    }
+    .pred-extra-input:focus { outline: none; border-color: var(--blue); }
+    .fixture-meta { font-size: 0.68rem; color: var(--text-muted); margin-top: 3px; }
+    .shootout-note { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* =====================================================================
+       MISC UTILITIES
+       ===================================================================== */
+    .sect-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sect-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+    .tiebreaker-note {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.03);
+      border-left: 2px solid var(--border);
+      border-radius: 0 4px 4px 0;
+    }
+    .caveat-note {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      color: #fcd34d;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 600px) {
+      .fixture-row { grid-template-columns: 1fr; gap: 8px; }
+      .fixture-team.away { flex-direction: row; text-align: left; }
+      .fixture-score-area { order: -1; text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ========= HEADER ========= -->
+<header class="app-header">
+  <h1>⚽ World Cup 2026 Sweepstake</h1>
+  <p class="subtitle">48 players · €480 pot · 8 prizes</p>
+  <span class="disclaimer">🔒 Unofficial tracker — final prize allocation validated manually by the organiser</span>
+</header>
+
+<!-- ========= MAIN ========= -->
+<div class="main-container">
+
+  <!-- Loading state -->
+  <div id="loading-state" class="loading-state">
+    <div class="loading-spinner"></div>
+    <p>Loading live tournament data…</p>
+  </div>
+
+  <!-- Error state -->
+  <div id="error-state" class="error-state" style="display:none">
+    <div class="error-icon">⚠️</div>
+    <h3>Could not load data</h3>
+    <p id="error-msg">An error occurred fetching the tournament data.</p>
+    <br>
+    <p>Is the <code>BALLDONTLIE_API_KEY</code> environment variable set in Netlify? <br>
+    Check the browser console for details, then refresh.</p>
+  </div>
+
+  <!-- Main app (shown after data loads) -->
+  <div id="app" style="display:none">
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav" role="tablist" id="tab-nav">
+      <button class="tab-btn active" data-tab="overview"  role="tab">🏆 Overview</button>
+      <button class="tab-btn"        data-tab="cards"     role="tab">🟨 Cards</button>
+      <button class="tab-btn"        data-tab="penalties" role="tab">⚽ Penalties</button>
+      <button class="tab-btn"        data-tab="goals"     role="tab">🔥 Most Goals/G</button>
+      <button class="tab-btn"        data-tab="fewest"    role="tab">🧊 Fewest Goals/G</button>
+      <button class="tab-btn"        data-tab="underdog"  role="tab">🐊 Underdog</button>
+      <button class="tab-btn"        data-tab="fixtures"  role="tab">📋 Fixtures</button>
+    </nav>
+
+    <!-- Tab Panels -->
+    <div id="tab-overview"  class="tab-panel active"></div>
+    <div id="tab-cards"     class="tab-panel"></div>
+    <div id="tab-penalties" class="tab-panel"></div>
+    <div id="tab-goals"     class="tab-panel"></div>
+    <div id="tab-fewest"    class="tab-panel"></div>
+    <div id="tab-underdog"  class="tab-panel"></div>
+    <div id="tab-fixtures"  class="tab-panel"></div>
+
+  </div><!-- /app -->
+</div><!-- /main-container -->
+
+<!-- ====================================================================
+     JAVASCRIPT
+     ==================================================================== -->
+<script>
+'use strict';
+
+// =============================================================================
+// 1. STATIC DATA
+// =============================================================================
+
+const ROSTER = [
+  {rank:  1, country: "Argentina",    person: "Dan Kirby"},
+  {rank:  2, country: "Spain",        person: "Gerben de Blaaij"},
+  {rank:  3, country: "France",       person: "Lar Harney"},
+  {rank:  4, country: "England",      person: "Mike Whitmore"},
+  {rank:  5, country: "Portugal",     person: "Callum McDonnell"},
+  {rank:  6, country: "Brazil",       person: "Fergal Murray"},
+  {rank:  7, country: "Morocco",      person: "Daiva Uogintaite"},
+  {rank:  8, country: "Netherlands",  person: "Diogo Cabral"},
+  {rank:  9, country: "Belgium",      person: "Luke Happy"},
+  {rank: 10, country: "Germany",      person: "Caike Colantonio"},
+  {rank: 11, country: "Croatia",      person: "Tanina Urbanski"},
+  {rank: 13, country: "Colombia",     person: "Aisha Bashirova"},
+  {rank: 14, country: "Mexico",       person: "Diego Cabral"},
+  {rank: 15, country: "Senegal",      person: "Brian Cronin"},
+  {rank: 16, country: "Uruguay",      person: "James Geraghty"},
+  {rank: 17, country: "USA",          person: "Jacob King"},
+  {rank: 18, country: "Japan",        person: "Callum O'Donnell"},
+  {rank: 19, country: "Switzerland",  person: "Mason Allen"},
+  {rank: 20, country: "Iran",         person: "Sebastian Hartmann"},
+  {rank: 22, country: "Türkiye",      person: "Alex Kilroy"},
+  {rank: 23, country: "Ecuador",      person: "Adam Browne"},
+  {rank: 24, country: "Austria",      person: "Chloe Coyle"},
+  {rank: 25, country: "South Korea",  person: "Catarina Duarte"},
+  {rank: 27, country: "Australia",    person: "Sakshi Dubey"},
+  {rank: 28, country: "Algeria",      person: "Lar Hurricane"},
+  {rank: 29, country: "Egypt",        person: "Celeb Mobisson"},
+  {rank: 30, country: "Canada",       person: "Luke Curry"},
+  {rank: 31, country: "Norway",       person: "Michael Corcoran"},
+  {rank: 33, country: "Ivory Coast",  person: "Andrew Canale"},
+  {rank: 34, country: "Panama",       person: "Mooson Allen"},
+  {rank: 38, country: "Sweden",       person: "Cat Duarte"},
+  {rank: 40, country: "Czechia",      person: "Luke Vrolijk"},
+  {rank: 41, country: "Paraguay",     person: "Caleb Mobisson"},
+  {rank: 42, country: "Scotland",     person: "Tenina Urbanski"},
+  {rank: 45, country: "Tunisia",      person: "Theo Boland"},
+  {rank: 46, country: "DR Congo",     person: "Shaena Keenan"},
+  {rank: 50, country: "Uzbekistan",   person: "Nick Enrique"},
+  {rank: 56, country: "Qatar",        person: "Geoff Mobisson"},
+  {rank: 57, country: "Iraq",         person: "Bryson Hall"},
+  {rank: 60, country: "South Africa", person: "Ceren Koseoglu"},
+  {rank: 61, country: "Saudi Arabia", person: "Ieva Andrijauskaite"},
+  {rank: 63, country: "Jordan",       person: "Solveigh Schwager"},
+  {rank: 64, country: "Bosnia",       person: "Doug Guilbeau"},
+  {rank: 67, country: "Cape Verde",   person: "Valkyria Barbosa Araujo"},
+  {rank: 73, country: "Ghana",        person: "Cian Boland"},
+  {rank: 82, country: "Curaçao",      person: "Kelly Gregg"},
+  {rank: 83, country: "Haiti",        person: "Dhruvi Soni"},
+  {rank: 85, country: "New Zealand",  person: "Joy Ohenhen"},
+];
+
+// Canonical country name → API name variants (lower-cased for matching)
+const NAME_VARIANTS = {
+  "argentina":    ["argentina"],
+  "spain":        ["spain"],
+  "france":       ["france"],
+  "england":      ["england"],
+  "portugal":     ["portugal"],
+  "brazil":       ["brazil"],
+  "morocco":      ["morocco"],
+  "netherlands":  ["netherlands", "holland"],
+  "belgium":      ["belgium"],
+  "germany":      ["germany"],
+  "croatia":      ["croatia"],
+  "colombia":     ["colombia"],
+  "mexico":       ["mexico"],
+  "senegal":      ["senegal"],
+  "uruguay":      ["uruguay"],
+  "usa":          ["usa", "united states", "united states of america"],
+  "japan":        ["japan"],
+  "switzerland":  ["switzerland"],
+  "iran":         ["iran", "ir iran"],
+  "türkiye":      ["türkiye", "turkey", "turkiye"],
+  "ecuador":      ["ecuador"],
+  "austria":      ["austria"],
+  "south korea":  ["south korea", "korea republic", "korea, republic of"],
+  "australia":    ["australia"],
+  "algeria":      ["algeria"],
+  "egypt":        ["egypt"],
+  "canada":       ["canada"],
+  "norway":       ["norway"],
+  "ivory coast":  ["ivory coast", "cote d'ivoire", "côte d'ivoire"],
+  "panama":       ["panama"],
+  "sweden":       ["sweden"],
+  "czechia":      ["czechia", "czech republic"],
+  "paraguay":     ["paraguay"],
+  "scotland":     ["scotland"],
+  "tunisia":      ["tunisia"],
+  "dr congo":     ["dr congo", "congo dr", "democratic republic of the congo", "dr. congo"],
+  "uzbekistan":   ["uzbekistan"],
+  "qatar":        ["qatar"],
+  "iraq":         ["iraq"],
+  "south africa": ["south africa"],
+  "saudi arabia": ["saudi arabia"],
+  "jordan":       ["jordan"],
+  "bosnia":       ["bosnia", "bosnia and herzegovina", "bosnia & herzegovina"],
+  "cape verde":   ["cape verde", "cabo verde"],
+  "ghana":        ["ghana"],
+  "curaçao":      ["curaçao", "curacao"],
+  "haiti":        ["haiti"],
+  "new zealand":  ["new zealand"],
+};
+
+// Country → emoji flag
+const FLAGS = {
+  "argentina": "🇦🇷", "spain": "🇪🇸", "france": "🇫🇷", "england": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  "portugal": "🇵🇹", "brazil": "🇧🇷", "morocco": "🇲🇦", "netherlands": "🇳🇱",
+  "belgium": "🇧🇪", "germany": "🇩🇪", "croatia": "🇭🇷", "colombia": "🇨🇴",
+  "mexico": "🇲🇽", "senegal": "🇸🇳", "uruguay": "🇺🇾", "usa": "🇺🇸",
+  "japan": "🇯🇵", "switzerland": "🇨🇭", "iran": "🇮🇷", "türkiye": "🇹🇷",
+  "ecuador": "🇪🇨", "austria": "🇦🇹", "south korea": "🇰🇷", "australia": "🇦🇺",
+  "algeria": "🇩🇿", "egypt": "🇪🇬", "canada": "🇨🇦", "norway": "🇳🇴",
+  "ivory coast": "🇨🇮", "panama": "🇵🇦", "sweden": "🇸🇪", "czechia": "🇨🇿",
+  "paraguay": "🇵🇾", "scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "tunisia": "🇹🇳", "dr congo": "🇨🇩",
+  "uzbekistan": "🇺🇿", "qatar": "🇶🇦", "iraq": "🇮🇶", "south africa": "🇿🇦",
+  "saudi arabia": "🇸🇦", "jordan": "🇯🇴", "bosnia": "🇧🇦", "cape verde": "🇨🇻",
+  "ghana": "🇬🇭", "curaçao": "🇨🇼", "haiti": "🇭🇹", "new zealand": "🇳🇿",
+};
+
+const PRIZES = {
+  placement1: 125,
+  placement2: 80,
+  placement3: 60,
+  cards:      40,
+  penalties:  40,
+  goals:      40,
+  fewest:     40,
+  underdog:   55,
+};
+
+const ROUND_ORDER = [
+  'Group Stage',
+  'Round of 32', 'R32',
+  'Round of 16', 'R16',
+  'Quarter-Final', 'Quarter-Finals', 'Quarterfinal', 'Quarterfinals', 'QF',
+  'Semi-Final', 'Semi-Finals', 'Semifinal', 'Semifinals', 'SF',
+  'Third Place', 'Third-Place Play-off', '3rd Place',
+  'Final',
+];
+
+function roundSortKey(round) {
+  if (!round) return 0;
+  const r = round.toLowerCase();
+  if (r.includes('group')) return 1;
+  if (r.includes('32'))    return 2;
+  if (r.includes('16'))    return 3;
+  if (r.includes('quarter')) return 4;
+  if (r.includes('semi'))    return 5;
+  if (r.includes('third') || r.includes('3rd')) return 6;
+  if (r.includes('final'))   return 7;
+  return 0;
+}
+
+// =============================================================================
+// 2. APPLICATION STATE
+// =============================================================================
+
+const S = {
+  matches:       [],   // raw match objects from API
+  events:        {},   // matchId → event[]
+  apiTeams:      [],   // raw team objects from API
+  teamMap:       {},   // apiTeamId → roster entry (with .apiTeamId, .flag, etc.)
+  nameToId:      {},   // lowercased name → apiTeamId
+
+  // Bracket: matchId → { homeFromMatchId, awayFromMatchId, nextMatchId, nextPos }
+  bracketGraph:  {},
+
+  // Simulator
+  predictions:   {},   // matchId → { homeGoals, awayGoals, homeCards, awayCards, homePen, awayPen }
+  simActive:     false,
+
+  // Derived (computed each render cycle)
+  effectiveMatches: [], // matches merged with predictions
+
+  loading:  true,
+  error:    null,
+  activeTab: 'overview',
+};
+
+// =============================================================================
+// 3. API CLIENT
+// =============================================================================
+
+async function proxyFetch(endpoint, params = {}) {
+  const qs = new URLSearchParams({ _endpoint: endpoint });
+  for (const [k, v] of Object.entries(params)) {
+    if (Array.isArray(v)) v.forEach(val => qs.append(k, val));
+    else qs.set(k, v);
+  }
+  const res  = await fetch(`/.netlify/functions/proxy?${qs}`);
+  const json = await res.json();
+  if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+  return json.data || [];
+}
+
+async function loadData() {
+  // Fetch matches and teams in parallel
+  const [matches, teams] = await Promise.all([
+    proxyFetch('matches', { 'seasons[]': '2026' }),
+    proxyFetch('teams',   { 'seasons[]': '2026' }),
+  ]);
+
+  S.matches  = matches;
+  S.apiTeams = teams;
+
+  buildTeamMap();
+  buildBracketGraph();
+  loadPredictions();
+  computeEffective();
+
+  // Now fetch events for all completed matches
+  const completedIds = matches
+    .filter(m => isCompleted(m))
+    .map(m => m.id);
+
+  if (completedIds.length > 0) {
+    await fetchEvents(completedIds);
+  }
+}
+
+async function fetchEvents(matchIds) {
+  // Batch into groups of 20 to keep URLs reasonable
+  const BATCH = 20;
+  for (let i = 0; i < matchIds.length; i += BATCH) {
+    const batch  = matchIds.slice(i, i + BATCH);
+    try {
+      const evts = await proxyFetch('match_events', { 'match_ids[]': batch.map(String) });
+      for (const evt of evts) {
+        const mid = evt.match_id;
+        if (!S.events[mid]) S.events[mid] = [];
+        S.events[mid].push(evt);
+      }
+    } catch (err) {
+      // If events endpoint is gated (403), note it but don't crash
+      console.warn('match_events fetch failed:', err.message);
+      if (err.message.includes('403') || err.message.includes('paid')) {
+        console.warn('match_events appears to require a paid tier. Cards and Penalties boards will show N/A.');
+        S.eventsGated = true;
+        break;
+      }
+    }
+  }
+}
+
+// =============================================================================
+// 4. DATA PROCESSING
+// =============================================================================
+
+function buildTeamMap() {
+  // Build a reverse-lookup: normalised name → apiTeamId
+  S.nameToId = {};
+  for (const team of S.apiTeams) {
+    const names = [
+      team.name,
+      team.full_name,
+      team.country,
+      team.abbreviation,
+    ].filter(Boolean).map(n => n.toLowerCase().trim());
+    for (const n of names) S.nameToId[n] = team.id;
+  }
+
+  // Log raw team names so the organiser can debug mismatches
+  console.info('[Sweepstake] API team names:', S.apiTeams.map(t => t.name));
+
+  // Map each roster entry to an API team ID
+  S.teamMap = {};
+  for (const entry of ROSTER) {
+    const key   = entry.country.toLowerCase();
+    const alts  = NAME_VARIANTS[key] || [key];
+    let   apiId = null;
+
+    for (const alt of alts) {
+      if (S.nameToId[alt] !== undefined) { apiId = S.nameToId[alt]; break; }
+    }
+
+    if (apiId == null) {
+      // Fuzzy fallback: check if any API name contains ours or vice versa
+      for (const [apiName, id] of Object.entries(S.nameToId)) {
+        if (apiName.includes(key) || key.includes(apiName)) { apiId = id; break; }
+      }
+    }
+
+    if (apiId == null) {
+      console.warn(`[Sweepstake] No API team match for: ${entry.country}`);
+    }
+
+    const enriched = {
+      ...entry,
+      apiTeamId: apiId,
+      flag: FLAGS[key] || '🏳️',
+    };
+    if (apiId != null) S.teamMap[apiId] = enriched;
+    // Also map by country name for quick lookup
+    entry.apiTeamId = apiId;
+    entry.flag      = FLAGS[key] || '🏳️';
+  }
+}
+
+function buildBracketGraph() {
+  // Group knockout matches by round, sorted by date
+  const rounds = {};
+  for (const m of S.matches) {
+    const key = roundSortKey(m.round);
+    if (key < 2) continue; // skip group stage
+    if (!rounds[key]) rounds[key] = [];
+    rounds[key].push(m);
+  }
+
+  // Sort each round by date (ascending)
+  for (const key of Object.keys(rounds)) {
+    rounds[key].sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+  }
+
+  // Pair successive rounds: pair[0] winner → next round home, pair[1] winner → next round away
+  const roundKeys = Object.keys(rounds).map(Number).sort((a,b)=>a-b);
+
+  S.bracketGraph = {};
+  for (let ri = 0; ri < roundKeys.length - 1; ri++) {
+    const curKey  = roundKeys[ri];
+    const nextKey = roundKeys[ri + 1];
+
+    // Skip the 3rd-place link (key 6) feeding into the Final (key 7) — they're independent
+    if (curKey === 6) continue;
+
+    const curMatches  = rounds[curKey];
+    const nextMatches = rounds[nextKey];
+
+    // Separate SF from 3rd-place play-off
+    const isSF = curKey === 5;
+
+    let nextIdx = 0;
+    for (let ci = 0; ci < curMatches.length; ci += 2) {
+      const m1 = curMatches[ci];
+      const m2 = curMatches[ci + 1];
+      const mn = isSF ? nextMatches.find(n => !isThirdPlace(n)) || nextMatches[nextIdx]
+                      : nextMatches[nextIdx];
+      nextIdx++;
+
+      if (!m1 || !mn) continue;
+      S.bracketGraph[m1.id] = { nextMatchId: mn.id, nextPos: 'home' };
+      if (m2) S.bracketGraph[m2.id] = { nextMatchId: mn.id, nextPos: 'away' };
+
+      // If semi-final, also wire losers into the 3rd-place play-off
+      if (isSF) {
+        const third = nextMatches.find(n => isThirdPlace(n));
+        if (third) {
+          S.bracketGraph[m1.id + '_loser'] = { nextMatchId: third.id, nextPos: 'home' };
+          if (m2) S.bracketGraph[m2.id + '_loser'] = { nextMatchId: third.id, nextPos: 'away' };
+        }
+      }
+    }
+  }
+}
+
+function isThirdPlace(match) {
+  if (!match || !match.round) return false;
+  const r = match.round.toLowerCase();
+  return r.includes('third') || r.includes('3rd');
+}
+
+// =============================================================================
+// 5. MATCH HELPERS
+// =============================================================================
+
+function isCompleted(match) {
+  const s = (match.status || '').toLowerCase();
+  return s === 'final' || s === 'ft' || s === 'finished' || s === 'completed' || s === 'aet' || s === 'pen';
+}
+
+function isLive(match) {
+  const s = (match.status || '').toLowerCase();
+  return s.includes('progress') || s === 'live' || s === 'ht' || s === 'in play';
+}
+
+function isScheduled(match) {
+  return !isCompleted(match) && !isLive(match);
+}
+
+// Returns the team IDs for a match, considering bracket propagation from predictions
+function getMatchTeamIds(match) {
+  const homeId = getTeamId(match.home_team);
+  const awayId = getTeamId(match.away_team);
+  return { homeId, awayId };
+}
+
+function getTeamId(teamObj) {
+  if (!teamObj) return null;
+  return teamObj.id ?? null;
+}
+
+function getTeamName(teamObj) {
+  if (!teamObj) return 'TBD';
+  return teamObj.name || teamObj.full_name || 'TBD';
+}
+
+// Normal-time score only (excludes shootout)
+function getNormalScore(match) {
+  // Different APIs use different field names — try all common variants
+  const home = match.home_team_score ?? match.home_score ?? match.home_goals ?? 0;
+  const away = match.away_team_score ?? match.away_score ?? match.away_goals ?? 0;
+  return { home: Number(home), away: Number(away) };
+}
+
+// Shootout score if applicable
+function getShootoutScore(match) {
+  const home = match.home_team_score_p ?? match.home_score_shootout ?? match.home_penalty_score ?? null;
+  const away = match.away_team_score_p ?? match.away_score_shootout ?? match.away_penalty_score ?? null;
+  if (home == null || away == null) return null;
+  return { home: Number(home), away: Number(away) };
+}
+
+function decidedByShootout(match) {
+  if (match.decided_by_penalties != null) return !!match.decided_by_penalties;
+  const ss = getShootoutScore(match);
+  if (ss) return true;
+  const s = (match.status || '').toLowerCase();
+  return s === 'pen';
+}
+
+// Who won in normal time? Returns 'home'|'away'|'draw'
+function normalResult(match) {
+  const { home, away } = getNormalScore(match);
+  if (home > away) return 'home';
+  if (away > home) return 'away';
+  return 'draw';
+}
+
+// =============================================================================
+// 6. SIMULATOR
+// =============================================================================
+
+function loadPredictions() {
+  try {
+    const stored = localStorage.getItem('wc2026_predictions');
+    if (stored) S.predictions = JSON.parse(stored);
+    const active = localStorage.getItem('wc2026_simActive');
+    if (active !== null) S.simActive = JSON.parse(active);
+  } catch {}
+}
+
+function savePredictions() {
+  try {
+    localStorage.setItem('wc2026_predictions', JSON.stringify(S.predictions));
+    localStorage.setItem('wc2026_simActive',   JSON.stringify(S.simActive));
+  } catch {}
+}
+
+function resetPredictions() {
+  S.predictions = {};
+  S.simActive   = false;
+  savePredictions();
+  computeEffective();
+  renderAll();
+}
+
+// Merge actual match data with predictions to produce effective results
+function computeEffective() {
+  S.effectiveMatches = S.matches.map(m => {
+    if (isCompleted(m) || isLive(m)) return { ...m, _source: 'actual' };
+    const pred = S.predictions[m.id];
+    if (!pred || !S.simActive) return { ...m, _source: 'scheduled' };
+
+    // Apply prediction: simulate a completed match
+    const merged = {
+      ...m,
+      status: 'Final',
+      _source: 'predicted',
+      home_team_score: pred.homeGoals ?? 0,
+      away_team_score: pred.awayGoals ?? 0,
+      _pred_home_cards: pred.homeCards ?? 0,
+      _pred_away_cards: pred.awayCards ?? 0,
+      _pred_home_pen:   pred.homePen   ?? 0,
+      _pred_away_pen:   pred.awayPen   ?? 0,
+    };
+    return merged;
+  });
+
+  // Propagate knockout bracket winners from predictions
+  if (S.simActive) propagateBracket();
+}
+
+function propagateBracket() {
+  // Build a lookup from matchId to effectiveMatch for quick access
+  const byId = {};
+  for (const m of S.effectiveMatches) byId[m.id] = m;
+
+  // Process in round order
+  const sorted = [...S.effectiveMatches]
+    .filter(m => roundSortKey(m.round) >= 2)
+    .sort((a, b) => roundSortKey(a.round) - roundSortKey(b.round) || new Date(a.date||0) - new Date(b.date||0));
+
+  for (const match of sorted) {
+    const graph = S.bracketGraph[match.id];
+    if (!graph) continue;
+    if (!isCompleted(match)) continue;
+
+    const { home: homeG, away: awayG } = getNormalScore(match);
+    const pso = decidedByShootout(match);
+
+    // Determine winner (for bracket progression) and loser (for 3rd place)
+    let winnerId = null;
+    let loserId  = null;
+    const { homeId, awayId } = getMatchTeamIds(match);
+
+    if (homeG > awayG) { winnerId = homeId; loserId = awayId; }
+    else if (awayG > homeG) { winnerId = awayId; loserId = homeId; }
+    else if (pso) {
+      const ss = getShootoutScore(match);
+      if (ss && ss.home > ss.away) { winnerId = homeId; loserId = awayId; }
+      else if (ss && ss.away > ss.home) { winnerId = awayId; loserId = homeId; }
+    }
+
+    if (!winnerId) continue;
+
+    // Inject winner into next match
+    const nextMatch = byId[graph.nextMatchId];
+    if (nextMatch && !isCompleted(nextMatch) && nextMatch._source !== 'actual') {
+      const winnerTeam = S.apiTeams.find(t => t.id === winnerId);
+      if (winnerTeam) {
+        if (graph.nextPos === 'home') nextMatch.home_team = winnerTeam;
+        else                          nextMatch.away_team = winnerTeam;
+      }
+    }
+
+    // Inject loser into 3rd-place play-off
+    if (loserId) {
+      const loserGraph = S.bracketGraph[match.id + '_loser'];
+      if (loserGraph) {
+        const thirdMatch = byId[loserGraph.nextMatchId];
+        if (thirdMatch && !isCompleted(thirdMatch) && thirdMatch._source !== 'actual') {
+          const loserTeam = S.apiTeams.find(t => t.id === loserId);
+          if (loserTeam) {
+            if (loserGraph.nextPos === 'home') thirdMatch.home_team = loserTeam;
+            else                               thirdMatch.away_team = loserTeam;
+          }
+        }
+      }
+    }
+  }
+}
+
+// hasPredictions: are there any active predictions affecting scores?
+function hasPredictions() {
+  return S.simActive && Object.keys(S.predictions).length > 0;
+}
+
+// =============================================================================
+// 7. SCORING ENGINE
+// =============================================================================
+
+// Returns effective matches (actual + predicted if sim active) for a given team
+function teamMatches(apiTeamId) {
+  return S.effectiveMatches.filter(m => {
+    if (!isCompleted(m)) return false;
+    const { homeId, awayId } = getMatchTeamIds(m);
+    return homeId === apiTeamId || awayId === apiTeamId;
+  });
+}
+
+// ---------- CARDS ----------
+function computeCards(entry) {
+  if (!entry.apiTeamId) return 0;
+  const matches = teamMatches(entry.apiTeamId);
+  let total = 0;
+
+  for (const match of matches) {
+    if (match._source === 'predicted') {
+      // Use manually entered prediction values
+      const isHome = getMatchTeamIds(match).homeId === entry.apiTeamId;
+      total += isHome ? (match._pred_home_cards || 0) : (match._pred_away_cards || 0);
+      continue;
+    }
+
+    const evts = (S.events[match.id] || [])
+      .filter(e => getEventTeamId(e) === entry.apiTeamId)
+      .sort((a, b) => (a.minute || 0) - (b.minute || 0));
+
+    // Track yellows per player per match to detect double-yellow
+    const playerYellows    = {};
+    const playerDismissed  = {};
+
+    for (const evt of evts) {
+      const pId  = getEventPlayerId(evt);
+      const type = (evt.type || '').toLowerCase();
+
+      if (type === 'yellow_card' || type === 'yellowcard') {
+        playerYellows[pId] = (playerYellows[pId] || 0) + 1;
+        if (playerYellows[pId] === 2 && !playerDismissed[pId]) {
+          // Second yellow → automatic red. Award 1 extra pt (first yellow already counted).
+          total += 1;
+          playerDismissed[pId] = true;
+        } else if (playerYellows[pId] === 1) {
+          total += 1;
+        }
+        // 3rd yellow in a match is anomalous — ignore
+      } else if (type === 'red_card' || type === 'redcard') {
+        if (!playerDismissed[pId]) {
+          // Straight red = 3 pts
+          total += 3;
+          playerDismissed[pId] = true;
+        }
+        // Else: this red is the automatic consequence of 2nd yellow, already counted
+      }
+    }
+  }
+  return total;
+}
+
+// ---------- PENALTIES SCORED ----------
+function computePenalties(entry) {
+  if (!entry.apiTeamId) return 0;
+  const matches = teamMatches(entry.apiTeamId);
+  let total = 0;
+
+  for (const match of matches) {
+    if (match._source === 'predicted') {
+      const isHome = getMatchTeamIds(match).homeId === entry.apiTeamId;
+      total += isHome ? (match._pred_home_pen || 0) : (match._pred_away_pen || 0);
+      continue;
+    }
+
+    const evts = S.events[match.id] || [];
+    for (const evt of evts) {
+      if (getEventTeamId(evt) !== entry.apiTeamId) continue;
+      const type    = (evt.type    || '').toLowerCase();
+      const subType = (evt.sub_type || evt.goal_type || '').toLowerCase();
+
+      // In-play penalty goal
+      if ((type === 'goal' || type === 'penalty') && subType === 'penalty') {
+        total += 1;
+      }
+      // Successful penalty-shootout kick
+      if (type.includes('shootout') || type.includes('penalty_kick') || type === 'penalty_kick') {
+        // Count if it was scored (not missed)
+        const missed = (evt.missed ?? evt.saved ?? false);
+        if (!missed) total += 1;
+      }
+    }
+  }
+  return total;
+}
+
+// ---------- GOALS PER GAME ----------
+function computeGoalsPerGame(entry) {
+  if (!entry.apiTeamId) return null;
+  const matches = teamMatches(entry.apiTeamId).filter(m => !isGroupStageMatchExcluded(m));
+  if (matches.length === 0) return null;
+
+  let totalGoals = 0;
+  for (const m of matches) {
+    const { home, away } = getNormalScore(m);
+    // Exclude shootout — normal score already excludes shootout (they don't add to score)
+    totalGoals += home + away;
+  }
+  return totalGoals / matches.length;
+}
+
+function isGroupStageMatchExcluded() { return false; } // include all matches
+
+// ---------- FEWEST GOALS PER GAME ----------
+// Same metric as above, ranked ascending — handled at display level
+
+// ---------- UNDERDOG ----------
+function computeUnderdog(entry) {
+  if (!entry.apiTeamId) return 0;
+  const matches = teamMatches(entry.apiTeamId);
+  let total = 0;
+
+  for (const match of matches) {
+    const { homeId, awayId } = getMatchTeamIds(match);
+    const isHome    = homeId === entry.apiTeamId;
+    const oppApiId  = isHome ? awayId : homeId;
+    const oppEntry  = S.teamMap[oppApiId];
+    if (!oppEntry) continue;
+
+    const myRank  = entry.rank;
+    const oppRank = oppEntry.rank;
+
+    // Opponent is ranked higher (lower number = better ranking)
+    if (oppRank >= myRank) continue; // no underdog points if opponent is ranked equal or worse
+
+    const gap = myRank - oppRank;
+
+    // Match result in normal time
+    const { home, away } = getNormalScore(match);
+    const myGoals  = isHome ? home : away;
+    const oppGoals = isHome ? away : home;
+    const pso      = decidedByShootout(match);
+
+    if (myGoals > oppGoals) {
+      total += gap;                    // Win
+    } else if (myGoals === oppGoals || pso) {
+      total += gap / 2;                // Draw (including shootout-decided KO games)
+    }
+    // Loss = 0
+  }
+  return total;
+}
+
+// ---------- PLACEMENT ----------
+function getPlacement(entry) {
+  if (!entry.apiTeamId) return null;
+
+  // Find the Final
+  const final = S.effectiveMatches.find(m => {
+    const r = (m.round || '').toLowerCase();
+    return r === 'final' || r === 'world cup final';
+  });
+  if (final && isCompleted(final)) {
+    const { homeId, awayId } = getMatchTeamIds(final);
+    const { home, away } = getNormalScore(final);
+    const ss = getShootoutScore(final);
+    let champion, runnerUp;
+    if (ss) {
+      champion = ss.home > ss.away ? homeId : awayId;
+      runnerUp = ss.home > ss.away ? awayId : homeId;
+    } else {
+      champion = home > away ? homeId : awayId;
+      runnerUp = home > away ? awayId : homeId;
+    }
+    if (entry.apiTeamId === champion) return 1;
+    if (entry.apiTeamId === runnerUp) return 2;
+  }
+
+  // Find the 3rd place play-off
+  const third = S.effectiveMatches.find(m => isThirdPlace(m));
+  if (third && isCompleted(third)) {
+    const { homeId, awayId } = getMatchTeamIds(third);
+    const { home, away } = getNormalScore(third);
+    const ss = getShootoutScore(third);
+    let winner3;
+    if (ss) winner3 = ss.home > ss.away ? homeId : awayId;
+    else    winner3 = home > away ? homeId : awayId;
+    if (entry.apiTeamId === winner3) return 3;
+  }
+
+  return null;
+}
+
+// ---------- HELPER: extract team ID from event ----------
+function getEventTeamId(evt) {
+  return evt.team_id ?? evt.team?.id ?? null;
+}
+function getEventPlayerId(evt) {
+  return evt.player_id ?? evt.player?.id ?? `anon_${Math.random()}`;
+}
+
+// =============================================================================
+// 8. LEADERBOARD BUILDER
+// =============================================================================
+
+function buildLeaderboard(scoreFn, higherIsBetter = true) {
+  const rows = ROSTER.map(entry => ({
+    entry,
+    value: scoreFn(entry),
+  }));
+
+  // Tiebreaker: higher rank number (worse FIFA ranking) wins ties
+  rows.sort((a, b) => {
+    const av = a.value ?? (higherIsBetter ? -Infinity : Infinity);
+    const bv = b.value ?? (higherIsBetter ? -Infinity : Infinity);
+    if (av !== bv) return higherIsBetter ? bv - av : av - bv;
+    // Tiebreaker: higher rank number (worse-ranked team) ranks higher
+    return b.entry.rank - a.entry.rank;
+  });
+
+  // Add position (ties share position)
+  let pos = 1;
+  for (let i = 0; i < rows.length; i++) {
+    if (i === 0) { rows[i].pos = 1; }
+    else {
+      const prev = rows[i - 1];
+      const cur  = rows[i];
+      const same = cur.value === prev.value;
+      rows[i].pos = same ? prev.pos : i + 1;
+    }
+    pos++;
+  }
+
+  return rows;
+}
+
+// =============================================================================
+// 9. RENDERING UTILITIES
+// =============================================================================
+
+function teamCell(entry) {
+  return `
+    <div class="team-cell">
+      <span class="flag">${entry.flag}</span>
+      <div>
+        <div class="person-name">${entry.person}</div>
+        <div class="country-name">${entry.country}</div>
+      </div>
+    </div>`;
+}
+
+function rankCell(pos) {
+  const cls = pos === 1 ? 'rank-1' : pos === 2 ? 'rank-2' : pos === 3 ? 'rank-3' : '';
+  const icon = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
+  return `<td class="rank-cell ${cls}">${icon}</td>`;
+}
+
+function renderLeaderboardTable(rows, metricLabel, prizeAmt, formatVal, includesPred) {
+  const predBadge = includesPred ? '<span class="pred-badge">incl. predictions</span>' : '';
+  let html = `
+    <div class="lb-table-wrap">
+    <table class="lb-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player / Team</th>
+          <th style="text-align:right">${metricLabel} ${predBadge}</th>
+          <th style="text-align:right">Prize</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  for (const row of rows) {
+    const val     = row.value;
+    const valStr  = val === null || val === undefined
+      ? '<span class="metric-dash">—</span>'
+      : formatVal(val);
+    const isLeader = row.pos === 1 && val !== null && val !== undefined;
+    const prizeStr = isLeader
+      ? `<span class="prize-badge">€${prizeAmt}</span>`
+      : '';
+    html += `
+      <tr>
+        ${rankCell(row.pos)}
+        <td>${teamCell(row.entry)}</td>
+        <td class="metric-cell">${valStr}</td>
+        <td style="text-align:right">${prizeStr}</td>
+      </tr>`;
+  }
+
+  html += '</tbody></table></div>';
+  return html;
+}
+
+// =============================================================================
+// 10. TAB RENDERERS
+// =============================================================================
+
+// ---- OVERVIEW ----
+function renderOverview() {
+  const el = document.getElementById('tab-overview');
+
+  // Placements
+  const placements = [null, null, null]; // [1st, 2nd, 3rd] roster entries
+  for (const entry of ROSTER) {
+    const p = getPlacement(entry);
+    if (p === 1) placements[0] = entry;
+    if (p === 2) placements[1] = entry;
+    if (p === 3) placements[2] = entry;
+  }
+
+  const medals    = ['🥇', '🥈', '🥉'];
+  const labels    = ['1st Place', '2nd Place', '3rd Place'];
+  const prizes    = [PRIZES.placement1, PRIZES.placement2, PRIZES.placement3];
+  const predMark  = hasPredictions() ? '<span class="pred-badge">predicted</span>' : '';
+
+  let podiumHtml = '';
+  for (let i = 0; i < 3; i++) {
+    const entry = placements[i];
+    podiumHtml += `
+      <div class="podium-card p${i+1}">
+        <div class="podium-medal">${medals[i]}</div>
+        <div class="podium-label">${labels[i]}</div>
+        ${entry
+          ? `<div class="podium-person">${entry.person} ${predMark}</div>
+             <div class="podium-team">${entry.flag} ${entry.country}</div>
+             <div class="podium-prize">€${prizes[i]}</div>`
+          : `<div class="podium-tbd">TBD</div>`
+        }
+      </div>`;
+  }
+
+  // Bonus summaries
+  const bonuses = [
+    { key: 'cards',    label: '🟨 Cards',           fn: computeCards,       fmt: v => v,              asc: false, prize: PRIZES.cards    },
+    { key: 'pen',      label: '⚽ Penalties',        fn: computePenalties,   fmt: v => v,              asc: false, prize: PRIZES.penalties },
+    { key: 'goals',    label: '🔥 Most Goals/G',     fn: computeGoalsPerGame,fmt: v => v?.toFixed(2), asc: false, prize: PRIZES.goals     },
+    { key: 'fewest',   label: '🧊 Fewest Goals/G',  fn: computeGoalsPerGame,fmt: v => v?.toFixed(2), asc: true,  prize: PRIZES.fewest    },
+    { key: 'underdog', label: '🐊 Underdog',         fn: computeUnderdog,   fmt: v => v % 1 === 0 ? v : v.toFixed(1), asc: false, prize: PRIZES.underdog },
+  ];
+
+  let bonusHtml = '';
+  for (const b of bonuses) {
+    const lb     = buildLeaderboard(b.fn, !b.asc);
+    const leader = lb.find(r => r.pos === 1 && r.value !== null);
+    if (!leader) continue;
+    bonusHtml += `
+      <div class="bonus-mini-card">
+        <div class="bonus-mini-label">${b.label}</div>
+        <div class="bonus-mini-person">${leader.entry.person}</div>
+        <div class="bonus-mini-value">${leader.entry.flag} ${leader.entry.country} · ${b.fmt(leader.value)}</div>
+        <div class="bonus-mini-prize">€${b.prize} prize</div>
+      </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="sect-title">🏆 Finishing Prizes</div>
+    <p class="sect-sub">Awarded when the tournament concludes. Currently showing real results${hasPredictions() ? ' + your predictions' : ''}.</p>
+    <div class="podium-grid">${podiumHtml}</div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="card-title">Bonus Leaderboard Leaders</div>
+      <div class="bonus-summary-grid">${bonusHtml || '<p style="color:var(--text-muted);font-size:0.85rem">No data yet</p>'}</div>
+    </div>
+
+    <div class="tiebreaker-note">
+      Tiebreaker (all prizes): when two players are tied on points, the player whose team has a higher FIFA ranking number (worse-ranked team) wins the tie.
+    </div>`;
+}
+
+// ---- CARDS ----
+function renderCards() {
+  const el   = document.getElementById('tab-cards');
+  const rows = buildLeaderboard(computeCards, true);
+  const pred = hasPredictions();
+
+  el.innerHTML = `
+    <div class="sect-title">🟨 Most Cards <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.cards}</span></div>
+    <p class="sect-sub">
+      Yellow = 1pt · Double-yellow dismissal = 2pts total · Straight red = 3pts.<br>
+      ${S.eventsGated ? '⚠️ Match events unavailable on this API plan — showing estimated figures from predictions only.' : 'Counts your team\'s disciplinary events across all completed matches.'}
+    </p>
+    ${renderLeaderboardTable(rows, 'Points', PRIZES.cards, v => v, pred)}
+    <div class="caveat-note">
+      ⚠️ The second-yellow vs straight-red distinction occasionally logs inconsistently in data sources. These figures are best-effort — confirm at settle-up.
+    </div>
+    <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
+}
+
+// ---- PENALTIES ----
+function renderPenalties() {
+  const el   = document.getElementById('tab-penalties');
+  const rows = buildLeaderboard(computePenalties, true);
+  const pred = hasPredictions();
+
+  el.innerHTML = `
+    <div class="sect-title">⚽ Most Penalties Scored <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.penalties}</span></div>
+    <p class="sect-sub">In-play penalty goals + successful penalty-shootout kicks, across all matches.</p>
+    ${S.eventsGated ? '<div class="caveat-note">⚠️ Match events unavailable on this API plan — only prediction-entered values are shown.</div>' : ''}
+    ${renderLeaderboardTable(rows, 'Penalties', PRIZES.penalties, v => v, pred)}
+    <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
+}
+
+// ---- MOST GOALS PER GAME ----
+function renderGoals() {
+  const el   = document.getElementById('tab-goals');
+  const rows = buildLeaderboard(computeGoalsPerGame, true);
+  const pred = hasPredictions();
+
+  el.innerHTML = `
+    <div class="sect-title">🔥 Most Goals / Game <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.goals}</span></div>
+    <p class="sect-sub">Average total goals per match (both teams combined, shootouts excluded). High-scoring games — win or lose — push you up.</p>
+    ${renderLeaderboardTable(rows, 'Avg Goals', PRIZES.goals, v => v.toFixed(2), pred)}
+    <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
+}
+
+// ---- FEWEST GOALS PER GAME ----
+function renderFewest() {
+  const el   = document.getElementById('tab-fewest');
+  const rows = buildLeaderboard(computeGoalsPerGame, false); // ascending
+  const pred = hasPredictions();
+
+  el.innerHTML = `
+    <div class="sect-title">🧊 Fewest Goals / Game <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.fewest}</span></div>
+    <p class="sect-sub">Same metric as above, lowest average wins. Tight, scrappy games win this one.</p>
+    ${renderLeaderboardTable(rows, 'Avg Goals', PRIZES.fewest, v => v.toFixed(2), pred)}
+    <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
+}
+
+// ---- UNDERDOG ----
+function renderUnderdog() {
+  const el   = document.getElementById('tab-underdog');
+  const rows = buildLeaderboard(computeUnderdog, true);
+  const pred = hasPredictions();
+
+  el.innerHTML = `
+    <div class="sect-title">🐊 Underdog <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.underdog}</span></div>
+    <p class="sect-sub">
+      Beat a higher-ranked team (lower rank number) to score the FIFA-ranking gap.<br>
+      Win = full gap · Draw (inc. shootout) = half gap · Loss = 0. Uses static 11-Jun-2026 rankings.
+    </p>
+    ${renderLeaderboardTable(rows, 'Points', PRIZES.underdog, v => v % 1 === 0 ? v : v.toFixed(1), pred)}
+    <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
+}
+
+// ---- FIXTURES / SIMULATOR ----
+function renderFixtures() {
+  const el = document.getElementById('tab-fixtures');
+
+  // Group matches by round, sorted by round order then date
+  const grouped = {};
+  for (const m of S.matches) {
+    const round = m.round || 'Unknown';
+    if (!grouped[round]) grouped[round] = [];
+    grouped[round].push(m);
+  }
+
+  const sortedRounds = Object.keys(grouped).sort((a, b) => {
+    const diff = roundSortKey(a) - roundSortKey(b);
+    if (diff !== 0) return diff;
+    // Within group stage, sort by group name
+    return a.localeCompare(b);
+  });
+
+  let fixturesHtml = '';
+  for (const round of sortedRounds) {
+    const matches = grouped[round].sort((a, b) => {
+      const da = new Date(a.date + 'T' + (a.time || '00:00'));
+      const db = new Date(b.date + 'T' + (b.time || '00:00'));
+      return da - db;
+    });
+
+    const groupLabel = round + (grouped[round][0]?.group ? ` (Group ${grouped[round][0].group})` : '');
+    fixturesHtml += `<div class="round-header"><span>${groupLabel}</span></div>`;
+
+    for (const match of matches) {
+      fixturesHtml += renderFixtureRow(match);
+    }
+  }
+
+  el.innerHTML = `
+    <div class="sim-toolbar">
+      <label>
+        <span class="toggle">
+          <input type="checkbox" id="sim-toggle" ${S.simActive ? 'checked' : ''}>
+          <span class="toggle-slider"></span>
+        </span>
+        Show predictions
+      </label>
+      <button class="btn btn-danger" id="reset-btn">↺ Reset predictions</button>
+      <span class="sim-note">Predictions are saved in your browser · all leaderboards update live</span>
+    </div>
+    <div id="fixtures-list">${fixturesHtml}</div>`;
+
+  // Event listeners
+  document.getElementById('sim-toggle').addEventListener('change', (e) => {
+    S.simActive = e.target.checked;
+    savePredictions();
+    computeEffective();
+    renderAll();
+  });
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    if (confirm('Reset all predictions? This cannot be undone.')) resetPredictions();
+  });
+
+  // Score inputs
+  el.querySelectorAll('.score-input').forEach(input => {
+    input.addEventListener('input', onScoreInput);
+  });
+  el.querySelectorAll('.pred-extra-input').forEach(input => {
+    input.addEventListener('input', onExtraInput);
+  });
+}
+
+function renderFixtureRow(match) {
+  const { homeId, awayId } = getMatchTeamIds(match);
+  const homeEntry = S.teamMap[homeId];
+  const awayEntry = S.teamMap[awayId];
+  const homeFlag  = homeEntry?.flag || '';
+  const awayFlag  = awayEntry?.flag || '';
+  const homeName  = getTeamName(match.home_team);
+  const awayName  = getTeamName(match.away_team);
+
+  const completed = isCompleted(match);
+  const live      = isLive(match);
+  const pred      = S.predictions[match.id];
+  const isPred    = !completed && !live && pred && S.simActive;
+
+  const rowClass  = completed ? 'completed' : live ? 'live' : isPred ? 'predicted' : '';
+
+  let dateStr = '';
+  if (match.date) {
+    const d = new Date(match.date + 'T' + (match.time || '12:00') + 'Z');
+    dateStr = isNaN(d) ? match.date : d.toLocaleDateString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', timeZone:'UTC' });
+  }
+
+  let scoreArea = '';
+  if (completed) {
+    const { home, away } = getNormalScore(match);
+    const ss = getShootoutScore(match);
+    const pso = decidedByShootout(match);
+    let scoreStr = `${home} – ${away}`;
+    if (pso && ss) scoreStr += ` <span style="font-size:0.65rem;color:var(--text-muted)">(${ss.home}–${ss.away} pens)</span>`;
+    scoreArea = `
+      <div class="fixture-score result">${scoreStr}</div>
+      <div class="fixture-date">${dateStr}</div>
+      <span class="fixture-status status-final">FT</span>`;
+  } else if (live) {
+    const { home, away } = getNormalScore(match);
+    scoreArea = `
+      <div class="fixture-score live-score">${home} – ${away}</div>
+      <span class="fixture-status status-live">● LIVE</span>`;
+  } else {
+    // Prediction inputs
+    const ph = pred?.homeGoals ?? '';
+    const pa = pred?.awayGoals ?? '';
+    scoreArea = `
+      <div class="score-inputs">
+        <input class="score-input" type="number" min="0" max="20" data-match="${match.id}" data-side="home" value="${ph}" placeholder="–">
+        <span class="score-sep">–</span>
+        <input class="score-input" type="number" min="0" max="20" data-match="${match.id}" data-side="away" value="${pa}" placeholder="–">
+      </div>
+      <div class="fixture-date">${dateStr}</div>
+      <span class="fixture-status status-scheduled">Upcoming</span>`;
+  }
+
+  // Extra prediction fields for cards/penalties (only for non-completed non-group matches, and only when sim is active)
+  let extraHtml = '';
+  const isKnockout = roundSortKey(match.round) >= 2;
+  if (!completed && !live && S.simActive) {
+    const hc = pred?.homeCards   ?? '';
+    const ac = pred?.awayCards   ?? '';
+    const hp = pred?.homePen     ?? '';
+    const ap = pred?.awayPen     ?? '';
+    extraHtml = `
+      <div class="pred-extra" style="grid-column:1/-1">
+        <span class="pred-extra-group">
+          🟨 ${homeName} cards:
+          <input class="pred-extra-input" type="number" min="0" max="20" data-match="${match.id}" data-side="home" data-field="cards" value="${hc}" placeholder="0">
+        </span>
+        <span class="pred-extra-group">
+          🟨 ${awayName} cards:
+          <input class="pred-extra-input" type="number" min="0" max="20" data-match="${match.id}" data-side="away" data-field="cards" value="${ac}" placeholder="0">
+        </span>
+        <span class="pred-extra-group">
+          ⚽ ${homeName} pens:
+          <input class="pred-extra-input" type="number" min="0" max="20" data-match="${match.id}" data-side="home" data-field="pen" value="${hp}" placeholder="0">
+        </span>
+        <span class="pred-extra-group">
+          ⚽ ${awayName} pens:
+          <input class="pred-extra-input" type="number" min="0" max="20" data-match="${match.id}" data-side="away" data-field="pen" value="${ap}" placeholder="0">
+        </span>
+      </div>`;
+  }
+
+  return `
+    <div class="fixture-row ${rowClass}" data-match-id="${match.id}">
+      <div class="fixture-team home">
+        <span class="flag">${homeFlag}</span>
+        <span>${homeName}</span>
+      </div>
+      <div class="fixture-score-area">${scoreArea}</div>
+      <div class="fixture-team away">
+        <span class="flag">${awayFlag}</span>
+        <span>${awayName}</span>
+      </div>
+      ${extraHtml}
+    </div>`;
+}
+
+// ---- INPUT HANDLERS ----
+function onScoreInput(e) {
+  const matchId = Number(e.target.dataset.match);
+  const side    = e.target.dataset.side;
+  const val     = e.target.value === '' ? undefined : Number(e.target.value);
+
+  if (!S.predictions[matchId]) S.predictions[matchId] = {};
+  if (side === 'home') S.predictions[matchId].homeGoals = val;
+  else                 S.predictions[matchId].awayGoals = val;
+
+  // Clean up empty predictions
+  if (S.predictions[matchId].homeGoals === undefined && S.predictions[matchId].awayGoals === undefined) {
+    delete S.predictions[matchId];
+  }
+
+  savePredictions();
+  if (S.simActive) {
+    computeEffective();
+    // Re-render all tabs except fixtures (to avoid losing focus)
+    renderOverview();
+    renderCards();
+    renderPenalties();
+    renderGoals();
+    renderFewest();
+    renderUnderdog();
+  }
+}
+
+function onExtraInput(e) {
+  const matchId = Number(e.target.dataset.match);
+  const side    = e.target.dataset.side;
+  const field   = e.target.dataset.field;
+  const val     = e.target.value === '' ? 0 : Number(e.target.value);
+
+  if (!S.predictions[matchId]) S.predictions[matchId] = {};
+  const key = (side === 'home' ? 'home' : 'away') + (field === 'cards' ? 'Cards' : 'Pen');
+  S.predictions[matchId][key] = val;
+
+  savePredictions();
+  if (S.simActive) {
+    computeEffective();
+    renderOverview();
+    renderCards();
+    renderPenalties();
+    renderGoals();
+    renderFewest();
+    renderUnderdog();
+  }
+}
+
+// =============================================================================
+// 11. MASTER RENDER & INIT
+// =============================================================================
+
+function renderAll() {
+  renderOverview();
+  renderCards();
+  renderPenalties();
+  renderGoals();
+  renderFewest();
+  renderUnderdog();
+  renderFixtures();
+}
+
+// Tab switching
+document.getElementById('tab-nav').addEventListener('click', (e) => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  const tab = btn.dataset.tab;
+
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === `tab-${tab}`);
+  });
+  S.activeTab = tab;
+});
+
+// Boot
+async function init() {
+  try {
+    await loadData();
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('app').style.display           = 'block';
+    renderAll();
+  } catch (err) {
+    console.error('[Sweepstake] Init failed:', err);
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('error-state').style.display   = 'block';
+    document.getElementById('error-msg').textContent       = err.message;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
