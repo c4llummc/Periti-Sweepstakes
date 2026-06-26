@@ -785,10 +785,30 @@ async function loadData() {
 }
 
 async function fetchEvents(matchIds) {
-  // Batch into groups of 20 to keep URLs reasonable
-  const BATCH = 20;
-  for (let i = 0; i < matchIds.length; i += BATCH) {
-    const batch  = matchIds.slice(i, i + BATCH);
+  // --- Browser-side localStorage cache ---
+  // Completed match events never change, so we persist them across page loads.
+  // This means after the first ever load, zero extra API calls are needed for historical events.
+  const LS_KEY = 'wc2026_events_v1';
+  let lsCache = {};
+  try { lsCache = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch {}
+
+  // Only request IDs not already in localStorage
+  const uncached = matchIds.filter(id => !lsCache[id]);
+  console.info(`[Events] ${matchIds.length} completed matches: ${matchIds.length - uncached.length} from localStorage, ${uncached.length} to fetch from API`);
+
+  // Load cached events into state
+  for (const [mid, evts] of Object.entries(lsCache)) {
+    if (matchIds.includes(Number(mid))) {
+      S.events[Number(mid)] = evts;
+    }
+  }
+
+  if (uncached.length === 0) return; // all served from cache
+
+  // Batch into groups of 10 (API-Football is per-fixture, proxy handles individually)
+  const BATCH = 10;
+  for (let i = 0; i < uncached.length; i += BATCH) {
+    const batch = uncached.slice(i, i + BATCH);
     try {
       const evts = await proxyFetch('match_events', { 'match_ids[]': batch.map(String) });
       for (const evt of evts) {
@@ -796,8 +816,12 @@ async function fetchEvents(matchIds) {
         if (!S.events[mid]) S.events[mid] = [];
         S.events[mid].push(evt);
       }
+      // Persist newly fetched events to localStorage
+      for (const id of batch) {
+        lsCache[id] = S.events[id] || [];
+      }
+      try { localStorage.setItem(LS_KEY, JSON.stringify(lsCache)); } catch {}
     } catch (err) {
-      // If events endpoint is gated (403), note it but don't crash
       console.warn('match_events fetch failed:', err.message);
       if (err.message.includes('403') || err.message.includes('paid')) {
         console.warn('match_events appears to require a paid tier. Cards and Penalties boards will show N/A.');
