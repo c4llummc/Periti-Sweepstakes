@@ -152,16 +152,19 @@ async function fetchAllPages(apiKey, endpoint, baseParams) {
     const result = await httpGet(url, apiKey);
 
     if (result.statusCode === 401) {
-      throw new Error('Invalid API key (401 Unauthorized)');
+      throw new Error(
+        `HTTP 401 Unauthorized — API key rejected. Raw response: "${result._raw}". ` +
+        `Check that BALLDONTLIE_API_KEY is correct in Netlify and that your account has FIFA WC 2026 API access at app.balldontlie.io.`
+      );
     }
     if (result.statusCode === 403) {
       throw new Error(
-        'This endpoint requires a paid BALLDONTLIE tier (403 Forbidden). ' +
-        'Check the fallback instructions in README.md.'
+        `HTTP 403 Forbidden — "${result._raw}". ` +
+        `This endpoint may require a paid BALLDONTLIE plan. Check app.balldontlie.io for your plan details.`
       );
     }
     if (result.statusCode !== 200) {
-      throw new Error(`API returned HTTP ${result.statusCode}: ${JSON.stringify(result.body).substring(0, 300)}`);
+      throw new Error(`API returned HTTP ${result.statusCode}: ${result._raw || JSON.stringify(result.body).substring(0, 300)}`);
     }
 
     const { data, meta } = result.body;
@@ -180,6 +183,7 @@ async function fetchAllPages(apiKey, endpoint, baseParams) {
 
 /**
  * Simple promisified HTTPS GET with a timeout.
+ * Tries Authorization: <key> first (BALLDONTLIE standard).
  */
 function httpGet(url, apiKey) {
   return new Promise((resolve, reject) => {
@@ -187,11 +191,15 @@ function httpGet(url, apiKey) {
       let raw = '';
       res.on('data', (chunk) => { raw += chunk; });
       res.on('end', () => {
+        // Handle non-JSON responses (e.g. plain-text "Unauthorized")
+        let body;
         try {
-          resolve({ statusCode: res.statusCode, body: JSON.parse(raw) });
+          body = JSON.parse(raw);
         } catch (e) {
-          reject(new Error(`Failed to parse JSON from ${url}: ${raw.substring(0, 200)}`));
+          // Return the raw text so callers can surface a useful error
+          body = { _rawText: raw.trim(), _parseError: true };
         }
+        resolve({ statusCode: res.statusCode, body, _raw: raw.trim() });
       });
     });
     req.on('error', reject);
