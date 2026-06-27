@@ -493,6 +493,179 @@
       font-size: 0.85rem;
     }
 
+    /* =====================================================================
+       BONUS EXPANDED CARDS (overview top-3)
+       ===================================================================== */
+    .bonus-expanded-list { display: flex; flex-direction: column; gap: 14px; }
+    .bonus-expanded-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .bonus-expanded-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .bonus-expanded-title { font-size: 0.95rem; font-weight: 700; }
+    .bonus-mini-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    .bonus-mini-table td { padding: 5px 6px; font-size: 0.82rem; vertical-align: middle; }
+    .bonus-mini-table tr:not(:last-child) td { border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .bonus-commentary {
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.03);
+      border-left: 2px solid var(--border);
+      border-radius: 0 4px 4px 0;
+      font-style: italic;
+      margin-top: 4px;
+    }
+
+    /* =====================================================================
+       LEADERBOARD MODE TOGGLE (actual vs predicted)
+       ===================================================================== */
+    .lb-mode-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .lb-mode-btn {
+      padding: 5px 13px;
+      border-radius: var(--tab-radius);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .lb-mode-btn.active {
+      background: var(--surface2);
+      color: var(--text);
+      border-color: #2d3f5e;
+      font-weight: 600;
+    }
+    .lb-mode-label { font-size: 0.75rem; color: var(--text-muted); margin-left: 4px; }
+
+    /* =====================================================================
+       FIXTURE VIEW TABS (List | Bracket)
+       ===================================================================== */
+    .fixture-view-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .fv-btn {
+      padding: 6px 14px;
+      border-radius: var(--tab-radius);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .fv-btn.active {
+      background: var(--surface2);
+      color: var(--text);
+      border-color: #2d3f5e;
+      font-weight: 600;
+    }
+
+    /* =====================================================================
+       BRACKET VIEW
+       ===================================================================== */
+    .bracket-wrap { overflow-x: auto; padding-bottom: 10px; }
+    .bracket-grid {
+      display: flex;
+      gap: 0;
+      min-width: 740px;
+      align-items: flex-start;
+    }
+    .bracket-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .bracket-col-header {
+      text-align: center;
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      padding: 6px 4px 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 8px;
+      white-space: nowrap;
+    }
+    .bracket-col-matches {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 0 4px;
+    }
+    .bracket-spacer { flex: 1; }
+    .bm-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 0.72rem;
+      position: relative;
+    }
+    .bm-card.bm-live { border-color: var(--green); }
+    .bm-card.bm-predicted { border-color: rgba(99,102,241,0.35); }
+    .bm-card.bm-final { border-color: var(--gold); }
+    .bm-team {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 0;
+    }
+    .bm-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.71rem;
+    }
+    .bm-goals {
+      font-weight: 700;
+      font-size: 0.78rem;
+      min-width: 14px;
+      text-align: right;
+    }
+    .bm-team.winner .bm-name { font-weight: 700; color: var(--accent); }
+    .bm-team.winner .bm-goals { color: var(--accent); }
+    .bm-divider { border: none; border-top: 1px solid var(--border); margin: 2px 0; }
+    .bracket-3rd {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .bracket-3rd-header {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    /* Actual score shown above prediction inputs */
+    .fixture-actual-label {
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 3px;
+      font-style: italic;
+    }
+
     @media (max-width: 600px) {
       .fixture-row { grid-template-columns: 1fr; gap: 8px; }
       .fixture-team.away { flex-direction: row; text-align: left; }
@@ -524,7 +697,7 @@
     <h3>Could not load data</h3>
     <p id="error-msg">An error occurred fetching the tournament data.</p>
     <br>
-    <p>Is the <code>BALLDONTLIE_API_KEY</code> environment variable set in Netlify? <br>
+    <p>Is the <code>API_FOOTBALL_KEY</code> environment variable set in Netlify? <br>
     Check the browser console for details, then refresh.</p>
   </div>
 
@@ -741,6 +914,10 @@ const S = {
   loading:  true,
   error:    null,
   activeTab: 'overview',
+
+  // UI mode flags
+  lbMode:      'actual',    // 'actual' | 'predicted'
+  fixtureView: 'list',      // 'list' | 'bracket'
 };
 
 // =============================================================================
@@ -788,7 +965,7 @@ async function fetchEvents(matchIds) {
   // --- Browser-side localStorage cache ---
   // Completed match events never change, so we persist them across page loads.
   // This means after the first ever load, zero extra API calls are needed for historical events.
-  const LS_KEY = 'wc2026_events_v1';
+  const LS_KEY = 'wc2026_events_v2'; // bumped → clears stale empty cache from old API providers
   let lsCache = {};
   try { lsCache = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch {}
 
@@ -1138,9 +1315,10 @@ function hasPredictions() {
 // 7. SCORING ENGINE
 // =============================================================================
 
-// Returns effective matches (actual + predicted if sim active) for a given team
+// Returns matches for scoring — respects lbMode toggle (actual vs predicted)
 function teamMatches(apiTeamId) {
-  return S.effectiveMatches.filter(m => {
+  const source = S.lbMode === 'actual' ? S.matches : S.effectiveMatches;
+  return source.filter(m => {
     if (!isCompleted(m)) return false;
     const { homeId, awayId } = getMatchTeamIds(m);
     return homeId === apiTeamId || awayId === apiTeamId;
@@ -1391,8 +1569,18 @@ function rankCell(pos) {
   return `<td class="rank-cell ${cls}">${icon}</td>`;
 }
 
-function renderLeaderboardTable(rows, metricLabel, prizeAmt, formatVal, includesPred) {
-  const predBadge = includesPred ? '<span class="pred-badge">incl. predictions</span>' : '';
+function lbModeBar() {
+  const hasPred = S.simActive && Object.keys(S.predictions).length > 0;
+  if (!hasPred) return '';
+  return `
+    <div class="lb-mode-bar">
+      <button class="lb-mode-btn ${S.lbMode === 'actual' ? 'active' : ''}" onclick="setLbMode('actual')">Actual</button>
+      <button class="lb-mode-btn ${S.lbMode === 'predicted' ? 'active' : ''}" onclick="setLbMode('predicted')">+ Predictions</button>
+      <span class="lb-mode-label">${S.lbMode === 'predicted' ? '(includes your simulated results)' : '(real results only)'}</span>
+    </div>`;
+}
+
+function renderLeaderboardTable(rows, metricLabel, prizeAmt, formatVal) {
   let html = `
     <div class="lb-table-wrap">
     <table class="lb-table">
@@ -1400,7 +1588,7 @@ function renderLeaderboardTable(rows, metricLabel, prizeAmt, formatVal, includes
         <tr>
           <th>#</th>
           <th>Player / Team</th>
-          <th style="text-align:right">${metricLabel} ${predBadge}</th>
+          <th style="text-align:right">${metricLabel}</th>
           <th style="text-align:right">Prize</th>
         </tr>
       </thead>
@@ -1412,9 +1600,7 @@ function renderLeaderboardTable(rows, metricLabel, prizeAmt, formatVal, includes
       ? '<span class="metric-dash">—</span>'
       : formatVal(val);
     const isLeader = row.pos === 1 && val !== null && val !== undefined;
-    const prizeStr = isLeader
-      ? `<span class="prize-badge">€${prizeAmt}</span>`
-      : '';
+    const prizeStr = isLeader ? `<span class="prize-badge">€${prizeAmt}</span>` : '';
     html += `
       <tr>
         ${rankCell(row.pos)}
@@ -1432,12 +1618,58 @@ function renderLeaderboardTable(rows, metricLabel, prizeAmt, formatVal, includes
 // 10. TAB RENDERERS
 // =============================================================================
 
+// ---- COMMENTARY GENERATOR ----
+function generateCommentary(bonusKey, lb, fmt, asc) {
+  const top = lb.filter(r => r.value !== null && r.value !== undefined);
+  if (top.length === 0) return 'No data yet — results will populate once matches are played.';
+
+  const first  = top[0];
+  const second = top.length > 1 ? top[1] : null;
+
+  // Find next upcoming match for 2nd place team
+  function nextMatchFor(entry) {
+    if (!entry?.apiTeamId) return null;
+    return S.matches.find(m => {
+      const { homeId, awayId } = getMatchTeamIds(m);
+      return !isCompleted(m) && !isLive(m) &&
+             (homeId === entry.apiTeamId || awayId === entry.apiTeamId);
+    });
+  }
+
+  if (!second) return `${first.entry.person} is the sole leader so far.`;
+
+  if (first.value === second.value) {
+    const nm = nextMatchFor(first);
+    const ctx = nm ? ` Both play soon — next result could break the tie.` : '';
+    return `🔥 Dead heat between ${first.entry.person} and ${second.entry.person}!${ctx}`;
+  }
+
+  const gap = Math.abs(
+    (asc ? second.value - first.value : first.value - second.value)
+  );
+
+  const nm = nextMatchFor(second);
+  let oppCtx = '';
+  if (nm) {
+    const { homeId } = getMatchTeamIds(nm);
+    const oppTeam = homeId === second.entry.apiTeamId ? nm.away_team : nm.home_team;
+    const oppName = getTeamName(oppTeam);
+    oppCtx = ` ${second.entry.person} (${second.entry.country}) faces ${oppName} next.`;
+  }
+
+  const gapStr = (bonusKey === 'goals' || bonusKey === 'fewest')
+    ? `${gap.toFixed(2)} avg goals/game`
+    : `${gap % 1 === 0 ? gap : gap.toFixed(1)} point${gap !== 1 ? 's' : ''}`;
+
+  return `${second.entry.person} is ${gapStr} behind ${first.entry.person}.${oppCtx}`;
+}
+
 // ---- OVERVIEW ----
 function renderOverview() {
   const el = document.getElementById('tab-overview');
 
   // Placements
-  const placements = [null, null, null]; // [1st, 2nd, 3rd] roster entries
+  const placements = [null, null, null];
   for (const entry of ROSTER) {
     const p = getPlacement(entry);
     if (p === 1) placements[0] = entry;
@@ -1445,10 +1677,10 @@ function renderOverview() {
     if (p === 3) placements[2] = entry;
   }
 
-  const medals    = ['🥇', '🥈', '🥉'];
-  const labels    = ['1st Place', '2nd Place', '3rd Place'];
-  const prizes    = [PRIZES.placement1, PRIZES.placement2, PRIZES.placement3];
-  const predMark  = hasPredictions() ? '<span class="pred-badge">predicted</span>' : '';
+  const medals  = ['🥇', '🥈', '🥉'];
+  const labels  = ['1st Place', '2nd Place', '3rd Place'];
+  const prizes  = [PRIZES.placement1, PRIZES.placement2, PRIZES.placement3];
+  const predMark = hasPredictions() ? '<span class="pred-badge">predicted</span>' : '';
 
   let podiumHtml = '';
   for (let i = 0; i < 3; i++) {
@@ -1461,45 +1693,66 @@ function renderOverview() {
           ? `<div class="podium-person">${entry.person} ${predMark}</div>
              <div class="podium-team">${entry.flag} ${entry.country}</div>
              <div class="podium-prize">€${prizes[i]}</div>`
-          : `<div class="podium-tbd">TBD</div>`
-        }
+          : `<div class="podium-tbd">TBD</div>`}
       </div>`;
   }
 
-  // Bonus summaries
+  // Bonus leaderboards — top 3 each, stacked
   const bonuses = [
-    { key: 'cards',    label: '🟨 Cards',           fn: computeCards,       fmt: v => v,              asc: false, prize: PRIZES.cards    },
-    { key: 'pen',      label: '⚽ Penalties',        fn: computePenalties,   fmt: v => v,              asc: false, prize: PRIZES.penalties },
-    { key: 'goals',    label: '🔥 Most Goals/G',     fn: computeGoalsPerGame,fmt: v => v?.toFixed(2), asc: false, prize: PRIZES.goals     },
-    { key: 'fewest',   label: '🧊 Fewest Goals/G',  fn: computeGoalsPerGame,fmt: v => v?.toFixed(2), asc: true,  prize: PRIZES.fewest    },
-    { key: 'underdog', label: '🐊 Underdog',         fn: computeUnderdog,   fmt: v => v % 1 === 0 ? v : v.toFixed(1), asc: false, prize: PRIZES.underdog },
+    { key: 'cards',    label: '🟨 Cards',          fn: computeCards,        fmt: v => v,                                    asc: false, prize: PRIZES.cards    },
+    { key: 'pen',      label: '⚽ Penalties',       fn: computePenalties,    fmt: v => v,                                    asc: false, prize: PRIZES.penalties },
+    { key: 'goals',    label: '🔥 Most Goals/G',    fn: computeGoalsPerGame, fmt: v => v?.toFixed(2),                        asc: false, prize: PRIZES.goals    },
+    { key: 'fewest',   label: '🧊 Fewest Goals/G', fn: computeGoalsPerGame, fmt: v => v?.toFixed(2),                        asc: true,  prize: PRIZES.fewest   },
+    { key: 'underdog', label: '🐊 Underdog',        fn: computeUnderdog,     fmt: v => v % 1 === 0 ? v : v.toFixed(1),      asc: false, prize: PRIZES.underdog },
   ];
 
-  let bonusHtml = '';
+  let bonusListHtml = '';
   for (const b of bonuses) {
-    const lb     = buildLeaderboard(b.fn, !b.asc);
-    const leader = lb.find(r => r.pos === 1 && r.value !== null);
-    if (!leader) continue;
-    bonusHtml += `
-      <div class="bonus-mini-card">
-        <div class="bonus-mini-label">${b.label}</div>
-        <div class="bonus-mini-person">${leader.entry.person}</div>
-        <div class="bonus-mini-value">${leader.entry.flag} ${leader.entry.country} · ${b.fmt(leader.value)}</div>
-        <div class="bonus-mini-prize">€${b.prize} prize</div>
+    const lb   = buildLeaderboard(b.fn, !b.asc);
+    const top3 = lb.filter(r => r.value !== null && r.value !== undefined).slice(0, 3);
+    if (top3.length === 0) continue;
+
+    const rowsHtml = top3.map((row, i) => {
+      const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+      const rankCls  = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-3';
+      return `
+        <tr>
+          <td class="rank-cell ${rankCls}" style="width:32px">${rankIcon}</td>
+          <td>
+            <span class="flag">${row.entry.flag}</span>
+            <strong>${row.entry.person}</strong>
+            <span class="country-name"> · ${row.entry.country}</span>
+          </td>
+          <td class="metric-cell" style="min-width:50px">${b.fmt(row.value)}</td>
+        </tr>`;
+    }).join('');
+
+    const commentary = generateCommentary(b.key, lb, b.fmt, b.asc);
+
+    bonusListHtml += `
+      <div class="bonus-expanded-card">
+        <div class="bonus-expanded-header">
+          <span class="bonus-expanded-title">${b.label}</span>
+          <span class="prize-badge">€${b.prize}</span>
+        </div>
+        <table class="bonus-mini-table">${rowsHtml}</table>
+        <div class="bonus-commentary">💬 ${commentary}</div>
       </div>`;
   }
 
   el.innerHTML = `
     <div class="sect-title">🏆 Finishing Prizes</div>
-    <p class="sect-sub">Awarded when the tournament concludes. Currently showing real results${hasPredictions() ? ' + your predictions' : ''}.</p>
+    <p class="sect-sub">Awarded when the tournament concludes. Currently showing ${hasPredictions() ? 'real results + your predictions' : 'real results'}.</p>
     <div class="podium-grid">${podiumHtml}</div>
 
-    <div class="card" style="margin-top:20px">
-      <div class="card-title">Bonus Leaderboard Leaders</div>
-      <div class="bonus-summary-grid">${bonusHtml || '<p style="color:var(--text-muted);font-size:0.85rem">No data yet</p>'}</div>
+    <div style="margin-top:24px">
+      <div class="sect-title" style="margin-bottom:12px">🎯 Bonus Prizes</div>
+      <div class="bonus-expanded-list">
+        ${bonusListHtml || '<p style="color:var(--text-muted);font-size:0.85rem">No match data yet</p>'}
+      </div>
     </div>
 
-    <div class="tiebreaker-note">
+    <div class="tiebreaker-note" style="margin-top:16px">
       Tiebreaker (all prizes): when two players are tied on points, the player whose team has a higher FIFA ranking number (worse-ranked team) wins the tie.
     </div>`;
 }
@@ -1508,17 +1761,17 @@ function renderOverview() {
 function renderCards() {
   const el   = document.getElementById('tab-cards');
   const rows = buildLeaderboard(computeCards, true);
-  const pred = hasPredictions();
 
   el.innerHTML = `
     <div class="sect-title">🟨 Most Cards <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.cards}</span></div>
     <p class="sect-sub">
       Yellow = 1pt · Double-yellow dismissal = 2pts total · Straight red = 3pts.<br>
-      ${S.eventsGated ? '⚠️ Match events unavailable on this API plan — showing estimated figures from predictions only.' : 'Counts your team\'s disciplinary events across all completed matches.'}
+      Counts your team's disciplinary events across all completed matches.
     </p>
-    ${renderLeaderboardTable(rows, 'Points', PRIZES.cards, v => v, pred)}
+    ${lbModeBar()}
+    ${renderLeaderboardTable(rows, 'Points', PRIZES.cards, v => v)}
     <div class="caveat-note">
-      ⚠️ The second-yellow vs straight-red distinction occasionally logs inconsistently in data sources. These figures are best-effort — confirm at settle-up.
+      ⚠️ Second-yellow vs straight-red distinctions can vary by data source. Figures are best-effort — confirm at settle-up.
     </div>
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
@@ -1527,13 +1780,12 @@ function renderCards() {
 function renderPenalties() {
   const el   = document.getElementById('tab-penalties');
   const rows = buildLeaderboard(computePenalties, true);
-  const pred = hasPredictions();
 
   el.innerHTML = `
     <div class="sect-title">⚽ Most Penalties Scored <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.penalties}</span></div>
     <p class="sect-sub">In-play penalty goals + successful penalty-shootout kicks, across all matches.</p>
-    ${S.eventsGated ? '<div class="caveat-note">⚠️ Match events unavailable on this API plan — only prediction-entered values are shown.</div>' : ''}
-    ${renderLeaderboardTable(rows, 'Penalties', PRIZES.penalties, v => v, pred)}
+    ${lbModeBar()}
+    ${renderLeaderboardTable(rows, 'Penalties', PRIZES.penalties, v => v)}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
@@ -1541,25 +1793,25 @@ function renderPenalties() {
 function renderGoals() {
   const el   = document.getElementById('tab-goals');
   const rows = buildLeaderboard(computeGoalsPerGame, true);
-  const pred = hasPredictions();
 
   el.innerHTML = `
     <div class="sect-title">🔥 Most Goals / Game <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.goals}</span></div>
     <p class="sect-sub">Average total goals per match (both teams combined, shootouts excluded). High-scoring games — win or lose — push you up.</p>
-    ${renderLeaderboardTable(rows, 'Avg Goals', PRIZES.goals, v => v.toFixed(2), pred)}
+    ${lbModeBar()}
+    ${renderLeaderboardTable(rows, 'Avg Goals', PRIZES.goals, v => v.toFixed(2))}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
 // ---- FEWEST GOALS PER GAME ----
 function renderFewest() {
   const el   = document.getElementById('tab-fewest');
-  const rows = buildLeaderboard(computeGoalsPerGame, false); // ascending
-  const pred = hasPredictions();
+  const rows = buildLeaderboard(computeGoalsPerGame, false);
 
   el.innerHTML = `
     <div class="sect-title">🧊 Fewest Goals / Game <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.fewest}</span></div>
     <p class="sect-sub">Same metric as above, lowest average wins. Tight, scrappy games win this one.</p>
-    ${renderLeaderboardTable(rows, 'Avg Goals', PRIZES.fewest, v => v.toFixed(2), pred)}
+    ${lbModeBar()}
+    ${renderLeaderboardTable(rows, 'Avg Goals', PRIZES.fewest, v => v.toFixed(2))}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
@@ -1567,7 +1819,6 @@ function renderFewest() {
 function renderUnderdog() {
   const el   = document.getElementById('tab-underdog');
   const rows = buildLeaderboard(computeUnderdog, true);
-  const pred = hasPredictions();
 
   el.innerHTML = `
     <div class="sect-title">🐊 Underdog <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.underdog}</span></div>
@@ -1575,7 +1826,8 @@ function renderUnderdog() {
       Beat a higher-ranked team (lower rank number) to score the FIFA-ranking gap.<br>
       Win = full gap · Draw (inc. shootout) = half gap · Loss = 0. Uses static 11-Jun-2026 rankings.
     </p>
-    ${renderLeaderboardTable(rows, 'Points', PRIZES.underdog, v => v % 1 === 0 ? v : v.toFixed(1), pred)}
+    ${lbModeBar()}
+    ${renderLeaderboardTable(rows, 'Points', PRIZES.underdog, v => v % 1 === 0 ? v : v.toFixed(1))}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
@@ -1583,36 +1835,29 @@ function renderUnderdog() {
 function renderFixtures() {
   const el = document.getElementById('tab-fixtures');
 
-  // Group matches by round, sorted by round order then date
+  // Build list view grouped by round
   const grouped = {};
   for (const m of S.matches) {
     const round = m.round || 'Unknown';
     if (!grouped[round]) grouped[round] = [];
     grouped[round].push(m);
   }
-
   const sortedRounds = Object.keys(grouped).sort((a, b) => {
     const diff = roundSortKey(a) - roundSortKey(b);
-    if (diff !== 0) return diff;
-    // Within group stage, sort by group name
-    return a.localeCompare(b);
+    return diff !== 0 ? diff : a.localeCompare(b);
   });
 
-  let fixturesHtml = '';
+  let listHtml = '';
   for (const round of sortedRounds) {
-    const matches = grouped[round].sort((a, b) => {
-      const da = new Date(a.date + 'T' + (a.time || '00:00'));
-      const db = new Date(b.date + 'T' + (b.time || '00:00'));
-      return da - db;
-    });
-
-    const groupLabel = round + (grouped[round][0]?.group ? ` (Group ${grouped[round][0].group})` : '');
-    fixturesHtml += `<div class="round-header"><span>${groupLabel}</span></div>`;
-
-    for (const match of matches) {
-      fixturesHtml += renderFixtureRow(match);
-    }
+    const matches = grouped[round].sort((a, b) =>
+      new Date(a.date + 'T' + (a.time || '00:00')) - new Date(b.date + 'T' + (b.time || '00:00'))
+    );
+    const groupLabel = round + (grouped[round][0]?.group ? ` · Group ${grouped[round][0].group}` : '');
+    listHtml += `<div class="round-header"><span>${groupLabel}</span></div>`;
+    for (const match of matches) listHtml += renderFixtureRow(match);
   }
+
+  const bracketHtml = renderBracket();
 
   el.innerHTML = `
     <div class="sim-toolbar">
@@ -1624,11 +1869,18 @@ function renderFixtures() {
         Show predictions
       </label>
       <button class="btn btn-danger" id="reset-btn">↺ Reset predictions</button>
-      <span class="sim-note">Predictions are saved in your browser · all leaderboards update live</span>
+      <span class="sim-note">Saved in browser · leaderboards update live</span>
     </div>
-    <div id="fixtures-list">${fixturesHtml}</div>`;
 
-  // Event listeners
+    <div class="fixture-view-bar">
+      <button class="fv-btn ${S.fixtureView === 'list' ? 'active' : ''}" onclick="setFixtureView('list')">📋 Match List</button>
+      <button class="fv-btn ${S.fixtureView === 'bracket' ? 'active' : ''}" onclick="setFixtureView('bracket')">🏆 Bracket</button>
+    </div>
+
+    <div id="fixture-list-view" style="${S.fixtureView === 'list' ? '' : 'display:none'}">${listHtml}</div>
+    <div id="fixture-bracket-view" style="${S.fixtureView === 'bracket' ? '' : 'display:none'}">${bracketHtml}</div>`;
+
+  // Toolbar listeners
   document.getElementById('sim-toggle').addEventListener('change', (e) => {
     S.simActive = e.target.checked;
     savePredictions();
@@ -1640,12 +1892,111 @@ function renderFixtures() {
   });
 
   // Score inputs
-  el.querySelectorAll('.score-input').forEach(input => {
-    input.addEventListener('input', onScoreInput);
-  });
-  el.querySelectorAll('.pred-extra-input').forEach(input => {
-    input.addEventListener('input', onExtraInput);
-  });
+  el.querySelectorAll('.score-input').forEach(input => input.addEventListener('input', onScoreInput));
+  el.querySelectorAll('.pred-extra-input').forEach(input => input.addEventListener('input', onExtraInput));
+}
+
+// ---- BRACKET VIEW ----
+function renderBracket() {
+  const roundDefs = [
+    { key: 2, name: 'Round of 32'  },
+    { key: 3, name: 'Round of 16'  },
+    { key: 4, name: 'Quarter-Final' },
+    { key: 5, name: 'Semi-Final'   },
+    { key: 7, name: 'Final'        },
+  ];
+
+  // Use effectiveMatches so predictions propagate into bracket
+  const byRound = {};
+  for (const m of S.effectiveMatches) {
+    const k = roundSortKey(m.round);
+    if (k < 2) continue;
+    if (!byRound[k]) byRound[k] = [];
+    byRound[k].push(m);
+  }
+  for (const k of Object.keys(byRound)) {
+    byRound[k].sort((a, b) => new Date(a.date||0) - new Date(b.date||0));
+  }
+
+  const thirdPlace = (byRound[6] || []);
+
+  let cols = '';
+  for (const rd of roundDefs) {
+    const matches = byRound[rd.key] || [];
+    const cards   = matches.map(m => renderBracketMatch(m, rd.key === 7)).join('');
+    cols += `
+      <div class="bracket-col">
+        <div class="bracket-col-header">${rd.name}</div>
+        <div class="bracket-col-matches">${cards || '<div style="padding:8px 4px;font-size:0.72rem;color:var(--text-muted)">TBD</div>'}</div>
+      </div>`;
+  }
+
+  let thirdHtml = '';
+  if (thirdPlace.length > 0) {
+    thirdHtml = `
+      <div class="bracket-3rd">
+        <div class="bracket-3rd-header">🥉 Third Place Play-off</div>
+        <div style="max-width:200px">${thirdPlace.map(m => renderBracketMatch(m, false)).join('')}</div>
+      </div>`;
+  }
+
+  return `
+    <div class="bracket-wrap">
+      <div class="bracket-grid">${cols}</div>
+      ${thirdHtml}
+    </div>`;
+}
+
+function renderBracketMatch(match, isFinal = false) {
+  const { homeId, awayId } = getMatchTeamIds(match);
+  const homeEntry = S.teamMap[homeId];
+  const awayEntry = S.teamMap[awayId];
+  const homeName  = getTeamName(match.home_team);
+  const awayName  = getTeamName(match.away_team);
+  const homeFlag  = homeEntry?.flag || '';
+  const awayFlag  = awayEntry?.flag || '';
+
+  const completed = isCompleted(match);
+  const live      = isLive(match);
+  const isPred    = match._source === 'predicted';
+
+  const { home: hg, away: ag } = getNormalScore(match);
+  const ss = getShootoutScore(match);
+
+  let homeWon = false, awayWon = false;
+  if (completed || live) {
+    if (ss) { homeWon = ss.home > ss.away; awayWon = !homeWon; }
+    else    { homeWon = hg > ag; awayWon = ag > hg; }
+  }
+
+  const cardCls = isFinal ? 'bm-final' : isPred ? 'bm-predicted' : live ? 'bm-live' : '';
+
+  const scoreStr = (completed || live)
+    ? (ss ? `${hg}–${ag} <span style="font-size:0.6rem;opacity:0.6">(${ss.home}–${ss.away}p)</span>` : `${hg}–${ag}`)
+    : '';
+
+  let dateStr = '';
+  if (match.date && !completed) {
+    const d = new Date(match.date + 'T' + (match.time || '12:00') + 'Z');
+    dateStr = isNaN(d) ? '' : d.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+  }
+
+  return `
+    <div class="bm-card ${cardCls}">
+      <div class="bm-team ${homeWon ? 'winner' : ''}">
+        <span>${homeFlag}</span>
+        <span class="bm-name">${homeName}</span>
+        ${(completed || live) ? `<span class="bm-goals">${hg}</span>` : ''}
+      </div>
+      <hr class="bm-divider">
+      <div class="bm-team ${awayWon ? 'winner' : ''}">
+        <span>${awayFlag}</span>
+        <span class="bm-name">${awayName}</span>
+        ${(completed || live) ? `<span class="bm-goals">${ag}</span>` : ''}
+      </div>
+      ${dateStr ? `<div style="font-size:0.6rem;color:var(--text-muted);margin-top:3px;text-align:center">${dateStr}</div>` : ''}
+      ${ss && completed ? `<div style="font-size:0.6rem;color:var(--text-muted);text-align:center">${ss.home}–${ss.away} pens</div>` : ''}
+    </div>`;
 }
 
 function renderFixtureRow(match) {
@@ -1687,17 +2038,19 @@ function renderFixtureRow(match) {
       <div class="fixture-score live-score">${home} – ${away}</div>
       <span class="fixture-status status-live">● LIVE</span>`;
   } else {
-    // Prediction inputs
+    // Prediction inputs — show actual FT score if there's already one (shouldn't happen for upcoming, but for clarity)
     const ph = pred?.homeGoals ?? '';
     const pa = pred?.awayGoals ?? '';
+    const hasPredScore = ph !== '' && pa !== '';
     scoreArea = `
+      ${hasPredScore ? `<div class="fixture-actual-label">Predicted: ${ph}–${pa}</div>` : ''}
       <div class="score-inputs">
         <input class="score-input" type="number" min="0" max="20" data-match="${match.id}" data-side="home" value="${ph}" placeholder="–">
         <span class="score-sep">–</span>
         <input class="score-input" type="number" min="0" max="20" data-match="${match.id}" data-side="away" value="${pa}" placeholder="–">
       </div>
       <div class="fixture-date">${dateStr}</div>
-      <span class="fixture-status status-scheduled">Upcoming</span>`;
+      <span class="fixture-status status-scheduled">${isPred ? '🔮 Predicted' : 'Upcoming'}</span>`;
   }
 
   // Extra prediction fields for cards/penalties (only for non-completed non-group matches, and only when sim is active)
@@ -1820,6 +2173,29 @@ document.getElementById('tab-nav').addEventListener('click', (e) => {
   });
   S.activeTab = tab;
 });
+
+// ---- GLOBAL UI ACTIONS (called from inline onclick) ----
+function setLbMode(mode) {
+  S.lbMode = mode;
+  renderOverview();
+  renderCards();
+  renderPenalties();
+  renderGoals();
+  renderFewest();
+  renderUnderdog();
+}
+
+function setFixtureView(view) {
+  S.fixtureView = view;
+  const listEl    = document.getElementById('fixture-list-view');
+  const bracketEl = document.getElementById('fixture-bracket-view');
+  if (listEl)    listEl.style.display    = view === 'list'    ? '' : 'none';
+  if (bracketEl) bracketEl.style.display = view === 'bracket' ? '' : 'none';
+  // Update button states
+  document.querySelectorAll('.fv-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toLowerCase().includes(view === 'list' ? 'list' : 'bracket'));
+  });
+}
 
 // Boot
 async function init() {
