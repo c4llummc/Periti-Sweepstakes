@@ -1494,11 +1494,11 @@ function computeEffective() {
 }
 
 function propagateBracket() {
-  // Build a lookup from matchId to effectiveMatch for quick access
+  // Build a mutable lookup from matchId → effectiveMatch (same object references)
   const byId = {};
   for (const m of S.effectiveMatches) byId[m.id] = m;
 
-  // Process in round order
+  // Process knockout rounds in order so R32 → R16 → QF → SF → Final propagates correctly
   const sorted = [...S.effectiveMatches]
     .filter(m => roundSortKey(m.round) >= 2)
     .sort((a, b) => roundSortKey(a.round) - roundSortKey(b.round) || new Date(a.date||0) - new Date(b.date||0));
@@ -1506,47 +1506,42 @@ function propagateBracket() {
   for (const match of sorted) {
     const graph = S.bracketGraph[match.id];
     if (!graph) continue;
-    if (!isCompleted(match)) continue;
+    if (!isCompleted(match)) continue; // only propagate from matches with a known result
 
     const { home: homeG, away: awayG } = getNormalScore(match);
     const pso = decidedByShootout(match);
 
-    // Determine winner (for bracket progression) and loser (for 3rd place)
-    let winnerId = null;
-    let loserId  = null;
-    const { homeId, awayId } = getMatchTeamIds(match);
+    // Grab the team objects directly from the match (avoids S.apiTeams ID lookup issues)
+    let winnerTeam = null;
+    let loserTeam  = null;
 
-    if (homeG > awayG) { winnerId = homeId; loserId = awayId; }
-    else if (awayG > homeG) { winnerId = awayId; loserId = homeId; }
-    else if (pso) {
+    if (homeG > awayG) {
+      winnerTeam = match.home_team; loserTeam = match.away_team;
+    } else if (awayG > homeG) {
+      winnerTeam = match.away_team; loserTeam = match.home_team;
+    } else if (pso) {
       const ss = getShootoutScore(match);
-      if (ss && ss.home > ss.away) { winnerId = homeId; loserId = awayId; }
-      else if (ss && ss.away > ss.home) { winnerId = awayId; loserId = homeId; }
+      if (ss && ss.home > ss.away) { winnerTeam = match.home_team; loserTeam = match.away_team; }
+      else if (ss && ss.away > ss.home) { winnerTeam = match.away_team; loserTeam = match.home_team; }
     }
 
-    if (!winnerId) continue;
+    if (!winnerTeam) continue;
 
-    // Inject winner into next match
+    // Inject winner into the next-round slot
     const nextMatch = byId[graph.nextMatchId];
-    if (nextMatch && !isCompleted(nextMatch) && nextMatch._source !== 'actual') {
-      const winnerTeam = S.apiTeams.find(t => t.id === winnerId);
-      if (winnerTeam) {
-        if (graph.nextPos === 'home') nextMatch.home_team = winnerTeam;
-        else                          nextMatch.away_team = winnerTeam;
-      }
+    if (nextMatch && !isCompleted(nextMatch)) {
+      if (graph.nextPos === 'home') nextMatch.home_team = { ...winnerTeam };
+      else                          nextMatch.away_team = { ...winnerTeam };
     }
 
     // Inject loser into 3rd-place play-off
-    if (loserId) {
+    if (loserTeam) {
       const loserGraph = S.bracketGraph[match.id + '_loser'];
       if (loserGraph) {
         const thirdMatch = byId[loserGraph.nextMatchId];
-        if (thirdMatch && !isCompleted(thirdMatch) && thirdMatch._source !== 'actual') {
-          const loserTeam = S.apiTeams.find(t => t.id === loserId);
-          if (loserTeam) {
-            if (loserGraph.nextPos === 'home') thirdMatch.home_team = loserTeam;
-            else                               thirdMatch.away_team = loserTeam;
-          }
+        if (thirdMatch && !isCompleted(thirdMatch)) {
+          if (loserGraph.nextPos === 'home') thirdMatch.home_team = { ...loserTeam };
+          else                               thirdMatch.away_team = { ...loserTeam };
         }
       }
     }
@@ -2230,7 +2225,7 @@ function renderBracket() {
     { key: 3, name: 'Round of 16'  },
     { key: 4, name: 'Quarter-Final' },
     { key: 5, name: 'Semi-Final'   },
-    { key: 7, name: 'Final'        },
+    { key: 7, name: '🏆 Final'    },
   ];
 
   // Use effectiveMatches so predictions propagate into bracket
@@ -2247,30 +2242,30 @@ function renderBracket() {
 
   const thirdPlace = (byRound[6] || []);
 
+  // Build columns; Final column gets third-place stacked below it
   let cols = '';
   for (const rd of roundDefs) {
     const matches = byRound[rd.key] || [];
-    const cards   = matches.map(m => renderBracketMatch(m, rd.key === 7)).join('');
+    const isFinalCol = rd.key === 7;
+    const cards = matches.map(m => renderBracketMatch(m, isFinalCol)).join('');
+
+    const thirdHtml = isFinalCol && thirdPlace.length > 0 ? `
+      <div class="bracket-3rd">
+        <div class="bracket-3rd-header">🥉 Third Place Play-off</div>
+        ${thirdPlace.map(m => renderBracketMatch(m, false)).join('')}
+      </div>` : '';
+
     cols += `
       <div class="bracket-col">
         <div class="bracket-col-header">${rd.name}</div>
         <div class="bracket-col-matches">${cards || '<div style="padding:8px 4px;font-size:0.72rem;color:var(--text-muted)">TBD</div>'}</div>
-      </div>`;
-  }
-
-  let thirdHtml = '';
-  if (thirdPlace.length > 0) {
-    thirdHtml = `
-      <div class="bracket-3rd">
-        <div class="bracket-3rd-header">🥉 Third Place Play-off</div>
-        <div style="max-width:200px">${thirdPlace.map(m => renderBracketMatch(m, false)).join('')}</div>
+        ${thirdHtml}
       </div>`;
   }
 
   return `
     <div class="bracket-wrap">
       <div class="bracket-grid">${cols}</div>
-      ${thirdHtml}
     </div>`;
 }
 
