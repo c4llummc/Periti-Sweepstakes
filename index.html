@@ -1021,6 +1021,31 @@ const MANUAL_PENALTIES = {
   "South Africa":  1,
 };
 
+// Confirmed R32 pairings where API may show TBD — keyed by both sides
+const KNOWN_R32_OPPONENTS = {
+  'South Africa':        'Canada',
+  'Canada':              'South Africa',
+  'Brazil':              'Japan',
+  'Japan':               'Brazil',
+  'Germany':             'Paraguay',
+  'Paraguay':            'Germany',
+  'Netherlands':         'Morocco',
+  'Morocco':             'Netherlands',
+  "Côte d'Ivoire":       'Norway',
+  'Ivory Coast':         'Norway',
+  'Norway':              "Côte d'Ivoire",
+  'France':              'Sweden',
+  'Sweden':              'France',
+  'United States':       'Bosnia-Herzegovina',
+  'USA':                 'Bosnia-Herzegovina',
+  'Bosnia-Herzegovina':  'United States',
+  'Australia':           'Egypt',
+  'Egypt':               'Australia',
+  'Argentina':           'Cabo Verde',
+  'Cape Verde':          'Argentina',
+  'Cabo Verde':          'Argentina',
+};
+
 const PRIZES = {
   placement1: 125,
   placement2: 80,
@@ -1152,6 +1177,7 @@ async function loadData() {
   S.apiTeams = teams;
 
   buildTeamMap();
+  fillMissingR32Teams();
   buildBracketGraph();
   loadPredictions();
   computeEffective();
@@ -1265,6 +1291,55 @@ function buildTeamMap() {
     // Also map by country name for quick lookup
     entry.apiTeamId = apiId;
     entry.flag      = FLAGS[key] || '🏳️';
+  }
+}
+
+// Fill in confirmed R32 pairings where the API still shows TBD teams
+function fillMissingR32Teams() {
+  const getTeamName = t => (t && (t.name || t.full_name || t.country || '')) || '';
+  const isTBD       = t => !t || !getTeamName(t) || /tbd|tba|\?/i.test(getTeamName(t));
+
+  // Build a name → API team object map for quick lookup
+  const nameToTeamObj = {};
+  for (const t of S.apiTeams) {
+    [t.name, t.full_name, t.country, t.abbreviation]
+      .filter(Boolean)
+      .forEach(n => nameToTeamObj[n.toLowerCase().trim()] = t);
+  }
+
+  // Helper: find an API team object from a display name using known variants
+  function resolveTeamObj(displayName) {
+    if (!displayName) return null;
+    const key = displayName.toLowerCase().trim();
+    // Direct match
+    if (nameToTeamObj[key]) return nameToTeamObj[key];
+    // Check NAME_VARIANTS
+    const alts = NAME_VARIANTS[key] || [];
+    for (const alt of alts) {
+      if (nameToTeamObj[alt]) return nameToTeamObj[alt];
+    }
+    // Fuzzy
+    for (const [k, t] of Object.entries(nameToTeamObj)) {
+      if (k.includes(key) || key.includes(k)) return t;
+    }
+    // Return a placeholder object so the name at least displays
+    return { name: displayName, full_name: displayName };
+  }
+
+  for (const m of S.matches) {
+    if (roundSortKey(m.round) !== 2) continue; // R32 only
+
+    const homeName = getTeamName(m.home_team);
+    const awayName = getTeamName(m.away_team);
+    const homeKnown = KNOWN_R32_OPPONENTS[homeName];
+    const awayKnown = KNOWN_R32_OPPONENTS[awayName];
+
+    if (homeKnown && isTBD(m.away_team)) {
+      m.away_team = resolveTeamObj(homeKnown);
+    }
+    if (awayKnown && isTBD(m.home_team)) {
+      m.home_team = resolveTeamObj(awayKnown);
+    }
   }
 }
 
@@ -1463,14 +1538,14 @@ function smartPredict() {
   renderAll();
 }
 
-function computeEffective() {
+function buildEffectiveMatches() {
   S.effectiveMatches = S.matches.map(m => {
     if (isCompleted(m) || isLive(m)) return { ...m, _source: 'actual' };
     const pred = S.predictions[m.id];
     if (!pred || !S.simActive) return { ...m, _source: 'scheduled' };
 
     // Apply prediction: simulate a completed match
-    const merged = {
+    return {
       ...m,
       status: 'Final',
       _source: 'predicted',
@@ -1481,11 +1556,54 @@ function computeEffective() {
       _pred_home_pen:   pred.homePen   ?? 0,
       _pred_away_pen:   pred.awayPen   ?? 0,
     };
-    return merged;
   });
+}
 
-  // Propagate knockout bracket winners from predictions
-  if (S.simActive) propagateBracket();
+function computeEffective() {
+  buildEffectiveMatches();
+
+  if (S.simActive) {
+    // Assign simulated penalty shootout outcomes for predicted knockout draws,
+    // then rebuild effectiveMatches so _pred_home_pen/_pred_away_pen are current
+    ensureShootoutResolutions();
+    buildEffectiveMatches();
+    propagateBracket();
+  }
+}
+
+// For predicted knockout matches that end in a draw, randomly assign a penalty winner.
+// Stable: once assigned, the same result sticks unless the prediction scores change.
+function ensureShootoutResolutions() {
+  for (const m of S.effectiveMatches) {
+    if (m._source !== 'predicted') continue;
+    if (roundSortKey(m.round) < 2) continue; // group stage draws are fine
+
+    const homeG = m.home_team_score ?? 0;
+    const awayG = m.away_team_score ?? 0;
+
+    if (homeG !== awayG) {
+      // Not a draw — clear any stale pen data
+      if (S.predictions[m.id]) {
+        delete S.predictions[m.id].homePen;
+        delete S.predictions[m.id].awayPen;
+      }
+      continue;
+    }
+
+    // It's a draw — assign shootout if not already done
+    const pred = S.predictions[m.id];
+    if (!pred) continue;
+    if (pred.homePen !== undefined) continue; // already resolved
+
+    const winnerPen = 3 + Math.floor(Math.random() * 10); // 3–12
+    const loserPen  = winnerPen - 1;
+    const homeWins  = Math.random() < 0.5;
+    pred.homePen = homeWins ? winnerPen : loserPen;
+    pred.awayPen = homeWins ? loserPen  : winnerPen;
+
+    // Persist so result is stable across re-renders
+    savePredictions();
+  }
 }
 
 function propagateBracket() {
@@ -1514,9 +1632,17 @@ function propagateBracket() {
     if (homeG > awayG)      { winnerTeam = homeTeam; loserTeam = awayTeam; }
     else if (awayG > homeG) { winnerTeam = awayTeam; loserTeam = homeTeam; }
     else if (pso) {
+      // Actual API shootout result
       const ss = getShootoutScore(match);
       if (ss && ss.home > ss.away)      { winnerTeam = homeTeam; loserTeam = awayTeam; }
       else if (ss && ss.away > ss.home) { winnerTeam = awayTeam; loserTeam = homeTeam; }
+    } else if (match._source === 'predicted') {
+      // Simulated penalty shootout for predicted draws
+      const pred = S.predictions[match.id];
+      if (pred && pred.homePen !== undefined) {
+        if (pred.homePen > pred.awayPen)      { winnerTeam = homeTeam; loserTeam = awayTeam; }
+        else if (pred.awayPen > pred.homePen) { winnerTeam = awayTeam; loserTeam = homeTeam; }
+      }
     }
 
     if (!winnerTeam) continue;
@@ -1815,7 +1941,6 @@ function teamCell(entry) {
     <div class="team-cell">
       <span class="flag">${entry.flag}</span>
       <div>
-        <div class="person-name">${entry.person}</div>
         <div class="country-name">${entry.country}</div>
       </div>
     </div>`;
@@ -1895,7 +2020,7 @@ function renderLeaderboardTable(scoreFn, higherIsBetter, metricLabel, prizeAmt, 
       : '';
     const isLeader = row.pos === 1;
     const prizeStr = isLeader && (sortMode === 'predicted' ? predVal != null : val != null)
-      ? `<span class="prize-badge">€${prizeAmt}</span>` : '';
+      ? `<span class="prize-badge">🏆</span>` : '';
 
     html += `
       <tr>
@@ -2018,9 +2143,7 @@ function renderOverview() {
         <div class="podium-medal">${medals[i]}</div>
         <div class="podium-label">${labels[i]}</div>
         ${entry
-          ? `<div class="podium-person">${entry.person} ${predMark}</div>
-             <div class="podium-team">${entry.flag} ${entry.country}</div>
-             <div class="podium-prize">€${prizes[i]}</div>`
+          ? `<div class="podium-team">${entry.flag} ${entry.country} ${predMark}</div>`
           : `<div class="podium-tbd">TBD</div>`}
       </div>`;
   }
@@ -2059,8 +2182,7 @@ function renderOverview() {
           <td class="rank-cell ${rankCls}" style="width:32px">${rankIcon}</td>
           <td>
             <span class="flag">${row.entry.flag}</span>
-            <strong>${row.entry.person}</strong>
-            <span class="country-name"> · ${row.entry.country}</span>
+            <span class="country-name">${row.entry.country}</span>
           </td>
           <td class="metric-cell" style="min-width:50px">${b.fmt(row.value)}</td>
           ${predCell}
@@ -2073,7 +2195,7 @@ function renderOverview() {
       <div class="bonus-expanded-card">
         <div class="bonus-expanded-header">
           <span class="bonus-expanded-title">${b.label}</span>
-          <span class="prize-badge">€${b.prize}</span>
+          <span class="prize-badge">🏆</span>
         </div>
         <table class="bonus-mini-table">${rowsHtml}</table>
         <div class="bonus-commentary">💬 ${commentary}</div>
@@ -2101,7 +2223,7 @@ function renderOverview() {
 function renderCards() {
   const el = document.getElementById('tab-cards');
   el.innerHTML = `
-    <div class="sect-title">🟨 Most Cards <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.cards}</span></div>
+    <div class="sect-title">🟨 Most Cards <span class="prize-badge" style="font-size:0.7rem">🏆</span></div>
     <p class="sect-sub">Yellow = 1pt · Double-yellow = 2pts total · Straight red = 3pts.</p>
     ${renderLeaderboardTable(computeCards, true, 'Points', PRIZES.cards, v => v, 'cards')}
     <div class="caveat-note">⚠️ Figures from manually updated group stage stats — will be refreshed each round.</div>
@@ -2112,7 +2234,7 @@ function renderCards() {
 function renderPenalties() {
   const el = document.getElementById('tab-penalties');
   el.innerHTML = `
-    <div class="sect-title">⚽ Most Penalties Scored <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.penalties}</span></div>
+    <div class="sect-title">⚽ Most Penalties Scored <span class="prize-badge" style="font-size:0.7rem">🏆</span></div>
     <p class="sect-sub">In-play penalty goals + successful penalty-shootout kicks, across all matches.</p>
     ${renderLeaderboardTable(computePenalties, true, 'Penalties', PRIZES.penalties, v => v, 'pen')}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
@@ -2122,7 +2244,7 @@ function renderPenalties() {
 function renderGoals() {
   const el = document.getElementById('tab-goals');
   el.innerHTML = `
-    <div class="sect-title">🔥 Most Goals / Game <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.goals}</span></div>
+    <div class="sect-title">🔥 Most Goals / Game <span class="prize-badge" style="font-size:0.7rem">🏆</span></div>
     <p class="sect-sub">Average total goals per match (both teams combined, shootouts excluded). High-scoring games — win or lose — push you up.</p>
     ${renderLeaderboardTable(computeGoalsPerGame, true, 'Avg Goals', PRIZES.goals, v => v.toFixed(2), 'goals')}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
@@ -2132,7 +2254,7 @@ function renderGoals() {
 function renderFewest() {
   const el = document.getElementById('tab-fewest');
   el.innerHTML = `
-    <div class="sect-title">🧊 Fewest Goals / Game <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.fewest}</span></div>
+    <div class="sect-title">🧊 Fewest Goals / Game <span class="prize-badge" style="font-size:0.7rem">🏆</span></div>
     <p class="sect-sub">Same metric as above, lowest average wins. Tight, scrappy games win this one.</p>
     ${renderLeaderboardTable(computeGoalsPerGame, false, 'Avg Goals', PRIZES.fewest, v => v.toFixed(2), 'fewest')}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
@@ -2142,7 +2264,7 @@ function renderFewest() {
 function renderUnderdog() {
   const el = document.getElementById('tab-underdog');
   el.innerHTML = `
-    <div class="sect-title">🐊 Underdog <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.underdog}</span></div>
+    <div class="sect-title">🐊 Underdog <span class="prize-badge" style="font-size:0.7rem">🏆</span></div>
     <p class="sect-sub">
       Beat a higher-ranked team (lower rank number) to score the FIFA-ranking gap.<br>
       Win = full gap · Draw (inc. shootout) = half gap · Loss = 0. Uses static 11-Jun-2026 rankings.
