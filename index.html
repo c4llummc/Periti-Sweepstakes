@@ -666,9 +666,81 @@
       font-style: italic;
     }
 
+    /* Dual column leaderboard */
+    .dual-pred-cell {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #a5b4fc;
+      text-align: right;
+      min-width: 60px;
+    }
+    .dual-pred-header { color: #a5b4fc; }
+
+    /* Mobile prediction layout */
+    .fixture-pred-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: stretch;
+    }
+    .fixture-pred-team-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .fixture-pred-sep {
+      text-align: center;
+      font-weight: 700;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    .fixture-pred-team-row .score-input { margin-left: auto; }
+
     @media (max-width: 600px) {
-      .fixture-row { grid-template-columns: 1fr; gap: 8px; }
-      .fixture-team.away { flex-direction: row; text-align: left; }
+      /* Desktop fixture row → hide, show mobile version */
+      .fixture-row { display: none; }
+      .fixture-row-mobile {
+        display: block;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 6px;
+      }
+      .fixture-row-mobile.completed { opacity: 0.85; }
+      .fixture-row-mobile.live { border-color: var(--green); }
+      .fixture-row-mobile.predicted { border-color: rgba(99,102,241,0.4); }
+      .fmob-meta { font-size: 0.68rem; color: var(--text-muted); margin-bottom: 6px; text-align: center; }
+      .fmob-score-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 0;
+      }
+      .fmob-flag  { font-size: 1.1em; flex-shrink: 0; }
+      .fmob-name  { flex: 1; font-size: 0.85rem; font-weight: 600; }
+      .fmob-goals { font-size: 1rem; font-weight: 800; min-width: 22px; text-align: right; }
+      .fmob-input {
+        width: 44px;
+        text-align: center;
+        padding: 4px 0;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        color: #a5b4fc;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+      .fmob-input:focus { outline: none; border-color: var(--blue); }
+      .fmob-sep { text-align: center; color: var(--text-muted); font-size: 0.75rem; padding: 1px 0; }
+      .fmob-status-row { text-align: center; margin-top: 4px; }
+    }
+    @media (min-width: 601px) {
+      .fixture-row { display: grid; }
+      .fixture-row-mobile { display: none; }
+    }
+    @media (max-width: 600px) {
+      /* keep bracket wrap scrollable */
       .fixture-score-area { order: -1; text-align: left; }
     }
   </style>
@@ -856,6 +928,60 @@ const FLAGS = {
   "ghana": "🇬🇭", "curaçao": "🇨🇼", "haiti": "🇭🇹", "new zealand": "🇳🇿",
 };
 
+// Manual card points override — updated 27 Jun 2026.
+// Formula: Yellow × 1 + Red × 3. Paste updated table to Claude to refresh.
+// Source: FIFA/SofaScore group stage stats.
+const MANUAL_CARDS = {
+  "Haiti":        6,   // 6Y 0R
+  "Bosnia":       9,   // 6Y 1R
+  "Japan":        1,   // 1Y 0R
+  "Scotland":     5,   // 5Y 0R
+  "Paraguay":    10,   // 7Y 1R
+  "Brazil":       5,   // 5Y 0R
+  "USA":          5,   // 5Y 0R
+  "Czechia":      1,   // 1Y 0R
+  "Switzerland":  3,   // 3Y 0R
+  "Qatar":       10,   // 4Y 2R
+  "Ecuador":      5,   // 5Y 0R
+  "Iran":         6,   // 6Y 0R
+  "Norway":       1,   // 1Y 0R
+  "Spain":        2,   // 2Y 0R
+  "Mexico":       5,   // 2Y 1R
+  "Egypt":        6,   // 6Y 0R
+  "Australia":    5,   // 5Y 0R
+  "Sweden":       5,   // 5Y 0R
+  "Ghana":        2,   // 2Y 0R
+  "Germany":      1,   // 1Y 0R
+  "Curaçao":      7,   // 7Y 0R
+  "New Zealand":  4,   // 4Y 0R
+  "Morocco":      2,   // 2Y 0R
+  "Canada":       5,   // 5Y 0R
+  "Türkiye":      2,   // 2Y 0R
+  "Uruguay":      8,   // 5Y 1R
+  "Panama":       3,   // 3Y 0R
+  "Uzbekistan":   2,   // 2Y 0R
+  "Belgium":      6,   // 3Y 1R
+  "Saudi Arabia": 6,   // 6Y 0R
+  "South Africa":11,   // 5Y 2R
+  "Tunisia":      1,   // 1Y 0R
+  "Iraq":         7,   // 4Y 1R
+  "DR Congo":     2,   // 2Y 0R
+  "Argentina":    2,   // 2Y 0R
+  "Netherlands":  3,   // 3Y 0R
+  "South Korea":  4,   // 4Y 0R
+  "Austria":      3,   // 3Y 0R
+  "England":      1,   // 1Y 0R
+  "France":       1,   // 1Y 0R
+  "Croatia":      1,   // 1Y 0R
+  "Senegal":      2,   // 2Y 0R
+  "Portugal":     4,   // 4Y 0R
+  "Ivory Coast":  4,   // 4Y 0R
+  "Colombia":     3,   // 3Y 0R
+  "Jordan":       1,   // 1Y 0R
+  "Cape Verde":   4,   // 4Y 0R
+  "Algeria":      1,   // 1Y 0R
+};
+
 const PRIZES = {
   placement1: 125,
   placement2: 80,
@@ -923,6 +1049,41 @@ const S = {
 // =============================================================================
 // 3. API CLIENT
 // =============================================================================
+
+// Temporarily swap lbMode, run fn(), restore — allows computing both actual+predicted
+function withMode(mode, fn) {
+  const prev = S.lbMode;
+  S.lbMode = mode;
+  const result = fn();
+  S.lbMode = prev;
+  return result;
+}
+
+// True if team has played ≥1 match and has no upcoming fixture
+function isEliminated(entry) {
+  if (!entry.apiTeamId) return false;
+  const played = S.matches.some(m => {
+    const { homeId, awayId } = getMatchTeamIds(m);
+    return isCompleted(m) && (homeId === entry.apiTeamId || awayId === entry.apiTeamId);
+  });
+  const future = S.matches.some(m => {
+    const { homeId, awayId } = getMatchTeamIds(m);
+    return !isCompleted(m) && !isLive(m) && (homeId === entry.apiTeamId || awayId === entry.apiTeamId);
+  });
+  return played && !future;
+}
+
+// Next upcoming opponent name for an entry
+function nextOpponent(entry) {
+  if (!entry.apiTeamId) return null;
+  const m = S.matches.find(mx => {
+    const { homeId, awayId } = getMatchTeamIds(mx);
+    return !isCompleted(mx) && !isLive(mx) && (homeId === entry.apiTeamId || awayId === entry.apiTeamId);
+  });
+  if (!m) return null;
+  const { homeId } = getMatchTeamIds(m);
+  return homeId === entry.apiTeamId ? getTeamName(m.away_team) : getTeamName(m.home_team);
+}
 
 async function proxyFetch(endpoint, params = {}) {
   const qs = new URLSearchParams({ _endpoint: endpoint });
@@ -1327,6 +1488,21 @@ function teamMatches(apiTeamId) {
 
 // ---------- CARDS ----------
 function computeCards(entry) {
+  // Manual override takes priority over live API events (more reliable)
+  if (Object.prototype.hasOwnProperty.call(MANUAL_CARDS, entry.country)) {
+    const base = MANUAL_CARDS[entry.country];
+    // If predictions mode active, add any simulated card predictions on top
+    if (S.lbMode === 'predicted') {
+      const predExtra = teamMatches(entry.apiTeamId)
+        .filter(m => m._source === 'predicted')
+        .reduce((sum, m) => {
+          const isHome = getMatchTeamIds(m).homeId === entry.apiTeamId;
+          return sum + (isHome ? (m._pred_home_cards || 0) : (m._pred_away_cards || 0));
+        }, 0);
+      return base + predExtra;
+    }
+    return base;
+  }
   if (!entry.apiTeamId) return 0;
   const matches = teamMatches(entry.apiTeamId);
   let total = 0;
@@ -1569,18 +1745,22 @@ function rankCell(pos) {
   return `<td class="rank-cell ${cls}">${icon}</td>`;
 }
 
-function lbModeBar() {
-  const hasPred = S.simActive && Object.keys(S.predictions).length > 0;
-  if (!hasPred) return '';
-  return `
-    <div class="lb-mode-bar">
-      <button class="lb-mode-btn ${S.lbMode === 'actual' ? 'active' : ''}" onclick="setLbMode('actual')">Actual</button>
-      <button class="lb-mode-btn ${S.lbMode === 'predicted' ? 'active' : ''}" onclick="setLbMode('predicted')">+ Predictions</button>
-      <span class="lb-mode-label">${S.lbMode === 'predicted' ? '(includes your simulated results)' : '(real results only)'}</span>
-    </div>`;
-}
+function renderLeaderboardTable(scoreFn, higherIsBetter, metricLabel, prizeAmt, formatVal) {
+  const showPred = S.simActive && Object.keys(S.predictions).length > 0;
 
-function renderLeaderboardTable(rows, metricLabel, prizeAmt, formatVal) {
+  // Always build actual rows; optionally compute predicted values too
+  const actualRows = withMode('actual', () => buildLeaderboard(scoreFn, higherIsBetter));
+
+  let predMap = {};
+  if (showPred) {
+    const predRows = withMode('predicted', () => buildLeaderboard(scoreFn, higherIsBetter));
+    for (const r of predRows) predMap[r.entry.country] = r.value;
+  }
+
+  const predHeader = showPred
+    ? `<th class="dual-pred-header" style="text-align:right">+ Predictions</th>`
+    : '';
+
   let html = `
     <div class="lb-table-wrap">
     <table class="lb-table">
@@ -1589,23 +1769,28 @@ function renderLeaderboardTable(rows, metricLabel, prizeAmt, formatVal) {
           <th>#</th>
           <th>Player / Team</th>
           <th style="text-align:right">${metricLabel}</th>
+          ${predHeader}
           <th style="text-align:right">Prize</th>
         </tr>
       </thead>
       <tbody>`;
 
-  for (const row of rows) {
-    const val     = row.value;
-    const valStr  = val === null || val === undefined
-      ? '<span class="metric-dash">—</span>'
-      : formatVal(val);
-    const isLeader = row.pos === 1 && val !== null && val !== undefined;
+  for (const row of actualRows) {
+    const val      = row.value;
+    const valStr   = val == null ? '<span class="metric-dash">—</span>' : formatVal(val);
+    const predVal  = predMap[row.entry.country];
+    const predStr  = showPred
+      ? `<td class="dual-pred-cell">${predVal == null ? '—' : formatVal(predVal)}</td>`
+      : '';
+    const isLeader = row.pos === 1 && val != null;
     const prizeStr = isLeader ? `<span class="prize-badge">€${prizeAmt}</span>` : '';
+
     html += `
       <tr>
         ${rankCell(row.pos)}
         <td>${teamCell(row.entry)}</td>
         <td class="metric-cell">${valStr}</td>
+        ${predStr}
         <td style="text-align:right">${prizeStr}</td>
       </tr>`;
   }
@@ -1621,47 +1806,73 @@ function renderLeaderboardTable(rows, metricLabel, prizeAmt, formatVal) {
 // ---- COMMENTARY GENERATOR ----
 function generateCommentary(bonusKey, lb, fmt, asc) {
   const top = lb.filter(r => r.value !== null && r.value !== undefined);
-  if (top.length === 0) return 'No data yet — results will populate once matches are played.';
+  if (!top.length) return 'No data yet — results will populate once matches are played.';
 
   const first  = top[0];
   const second = top.length > 1 ? top[1] : null;
+  const leader = first.entry;
+  const leaderOut  = isEliminated(leader);
+  const leaderNext = nextOpponent(leader);
 
-  // Find next upcoming match for 2nd place team
-  function nextMatchFor(entry) {
-    if (!entry?.apiTeamId) return null;
-    return S.matches.find(m => {
-      const { homeId, awayId } = getMatchTeamIds(m);
-      return !isCompleted(m) && !isLive(m) &&
-             (homeId === entry.apiTeamId || awayId === entry.apiTeamId);
-    });
+  // Goals / Fewest goals — rich elimination-aware commentary
+  if (bonusKey === 'goals' || bonusKey === 'fewest') {
+    const activeTop   = top.filter(r => !isEliminated(r.entry));
+    const elimTop     = top.filter(r =>  isEliminated(r.entry));
+    const advice      = asc ? 'tight, low-scoring affairs (0–0s and 1–0s)' : 'high-scoring thrillers';
+    const direction   = asc ? 'low' : 'high';
+
+    let msg = '';
+
+    if (leaderOut) {
+      msg += `${leader.flag} ${leader.country} leads at ${fmt(first.value)} avg but are eliminated — their score is locked in. `;
+    } else {
+      msg += `${leader.flag} ${leader.country} leads at ${fmt(first.value)} avg and still has games to play${leaderNext ? ` (next: ${leaderNext})` : ''}. `;
+    }
+
+    // Eliminated teams that are top-3
+    const elimMentions = elimTop.filter(r => r !== first).slice(0, 2)
+      .map(r => `${r.entry.flag} ${r.entry.country} (${fmt(r.value)})`).join(' and ');
+    if (elimMentions) {
+      msg += `${elimMentions} ${elimTop.length - (first === top[0] && leaderOut ? 1 : 0) === 1 ? 'is' : 'are'} also eliminated — they'll be watching on hoping for ${advice} from here. `;
+    }
+
+    // Active challengers
+    const challengers = activeTop.filter(r => r !== first).slice(0, 2);
+    if (challengers.length) {
+      const names = challengers.map(r => `${r.entry.flag} ${r.entry.country} (${fmt(r.value)})`).join(' and ');
+      msg += `${names} are still active and can push ${direction}er with the right results.`;
+    }
+
+    return msg.trim();
   }
 
-  if (!second) return `${first.entry.person} is the sole leader so far.`;
+  // Underdog
+  if (bonusKey === 'underdog') {
+    const gap = second ? (first.value - second.value) : 0;
+    const opp = leaderNext;
+    let msg = `${leader.flag} ${leader.country} leads with ${fmt(first.value)} underdog points`;
+    if (opp) msg += ` — up next vs ${opp}`;
+    msg += '. Knockout rounds offer the biggest ranking gaps to exploit.';
+    if (second && gap < 10) msg += ` ${second.entry.flag} ${second.entry.country} is only ${fmt(gap)} behind and could overtake with the right result.`;
+    return msg;
+  }
+
+  // Cards / Penalties — gap-based commentary
+  if (!second) return `${leader.person} holds the lead unchallenged so far.`;
 
   if (first.value === second.value) {
-    const nm = nextMatchFor(first);
-    const ctx = nm ? ` Both play soon — next result could break the tie.` : '';
-    return `🔥 Dead heat between ${first.entry.person} and ${second.entry.person}!${ctx}`;
+    return `🔥 Dead heat between ${first.entry.person} and ${second.entry.person}! Next result will be decisive.`;
   }
 
-  const gap = Math.abs(
-    (asc ? second.value - first.value : first.value - second.value)
-  );
+  const gap = Math.abs(first.value - second.value);
+  const gapStr = `${gap % 1 === 0 ? gap : gap.toFixed(1)} point${gap !== 1 ? 's' : ''}`;
+  const opp2 = nextOpponent(second.entry);
+  const out2 = isEliminated(second.entry);
 
-  const nm = nextMatchFor(second);
-  let oppCtx = '';
-  if (nm) {
-    const { homeId } = getMatchTeamIds(nm);
-    const oppTeam = homeId === second.entry.apiTeamId ? nm.away_team : nm.home_team;
-    const oppName = getTeamName(oppTeam);
-    oppCtx = ` ${second.entry.person} (${second.entry.country}) faces ${oppName} next.`;
-  }
-
-  const gapStr = (bonusKey === 'goals' || bonusKey === 'fewest')
-    ? `${gap.toFixed(2)} avg goals/game`
-    : `${gap % 1 === 0 ? gap : gap.toFixed(1)} point${gap !== 1 ? 's' : ''}`;
-
-  return `${second.entry.person} is ${gapStr} behind ${first.entry.person}.${oppCtx}`;
+  let msg = `${second.entry.flag} ${second.entry.country} (${second.entry.person}) is ${gapStr} behind ${leader.person}.`;
+  if (out2) msg += ` They're eliminated — their total is final.`;
+  else if (opp2) msg += ` Next up: ${opp2}.`;
+  return msg;
 }
 
 // ---- OVERVIEW ----
@@ -1712,9 +1923,20 @@ function renderOverview() {
     const top3 = lb.filter(r => r.value !== null && r.value !== undefined).slice(0, 3);
     if (top3.length === 0) continue;
 
+    const showPred = S.simActive && Object.keys(S.predictions).length > 0;
+    let predMap = {};
+    if (showPred) {
+      const predLb = withMode('predicted', () => buildLeaderboard(b.fn, !b.asc));
+      for (const r of predLb) predMap[r.entry.country] = r.value;
+    }
+
     const rowsHtml = top3.map((row, i) => {
       const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
       const rankCls  = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-3';
+      const predVal  = predMap[row.entry.country];
+      const predCell = showPred
+        ? `<td class="dual-pred-cell" style="min-width:50px">${predVal != null ? b.fmt(predVal) : '—'}</td>`
+        : '';
       return `
         <tr>
           <td class="rank-cell ${rankCls}" style="width:32px">${rankIcon}</td>
@@ -1724,6 +1946,7 @@ function renderOverview() {
             <span class="country-name"> · ${row.entry.country}</span>
           </td>
           <td class="metric-cell" style="min-width:50px">${b.fmt(row.value)}</td>
+          ${predCell}
         </tr>`;
     }).join('');
 
@@ -1759,75 +1982,55 @@ function renderOverview() {
 
 // ---- CARDS ----
 function renderCards() {
-  const el   = document.getElementById('tab-cards');
-  const rows = buildLeaderboard(computeCards, true);
-
+  const el = document.getElementById('tab-cards');
   el.innerHTML = `
     <div class="sect-title">🟨 Most Cards <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.cards}</span></div>
-    <p class="sect-sub">
-      Yellow = 1pt · Double-yellow dismissal = 2pts total · Straight red = 3pts.<br>
-      Counts your team's disciplinary events across all completed matches.
-    </p>
-    ${lbModeBar()}
-    ${renderLeaderboardTable(rows, 'Points', PRIZES.cards, v => v)}
-    <div class="caveat-note">
-      ⚠️ Second-yellow vs straight-red distinctions can vary by data source. Figures are best-effort — confirm at settle-up.
-    </div>
+    <p class="sect-sub">Yellow = 1pt · Double-yellow = 2pts total · Straight red = 3pts.</p>
+    ${renderLeaderboardTable(computeCards, true, 'Points', PRIZES.cards, v => v)}
+    <div class="caveat-note">⚠️ Figures from manually updated group stage stats — will be refreshed each round.</div>
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
 // ---- PENALTIES ----
 function renderPenalties() {
-  const el   = document.getElementById('tab-penalties');
-  const rows = buildLeaderboard(computePenalties, true);
-
+  const el = document.getElementById('tab-penalties');
   el.innerHTML = `
     <div class="sect-title">⚽ Most Penalties Scored <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.penalties}</span></div>
     <p class="sect-sub">In-play penalty goals + successful penalty-shootout kicks, across all matches.</p>
-    ${lbModeBar()}
-    ${renderLeaderboardTable(rows, 'Penalties', PRIZES.penalties, v => v)}
+    ${renderLeaderboardTable(computePenalties, true, 'Penalties', PRIZES.penalties, v => v)}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
 // ---- MOST GOALS PER GAME ----
 function renderGoals() {
-  const el   = document.getElementById('tab-goals');
-  const rows = buildLeaderboard(computeGoalsPerGame, true);
-
+  const el = document.getElementById('tab-goals');
   el.innerHTML = `
     <div class="sect-title">🔥 Most Goals / Game <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.goals}</span></div>
     <p class="sect-sub">Average total goals per match (both teams combined, shootouts excluded). High-scoring games — win or lose — push you up.</p>
-    ${lbModeBar()}
-    ${renderLeaderboardTable(rows, 'Avg Goals', PRIZES.goals, v => v.toFixed(2))}
+    ${renderLeaderboardTable(computeGoalsPerGame, true, 'Avg Goals', PRIZES.goals, v => v.toFixed(2))}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
 // ---- FEWEST GOALS PER GAME ----
 function renderFewest() {
-  const el   = document.getElementById('tab-fewest');
-  const rows = buildLeaderboard(computeGoalsPerGame, false);
-
+  const el = document.getElementById('tab-fewest');
   el.innerHTML = `
     <div class="sect-title">🧊 Fewest Goals / Game <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.fewest}</span></div>
     <p class="sect-sub">Same metric as above, lowest average wins. Tight, scrappy games win this one.</p>
-    ${lbModeBar()}
-    ${renderLeaderboardTable(rows, 'Avg Goals', PRIZES.fewest, v => v.toFixed(2))}
+    ${renderLeaderboardTable(computeGoalsPerGame, false, 'Avg Goals', PRIZES.fewest, v => v.toFixed(2))}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
 // ---- UNDERDOG ----
 function renderUnderdog() {
-  const el   = document.getElementById('tab-underdog');
-  const rows = buildLeaderboard(computeUnderdog, true);
-
+  const el = document.getElementById('tab-underdog');
   el.innerHTML = `
     <div class="sect-title">🐊 Underdog <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.underdog}</span></div>
     <p class="sect-sub">
       Beat a higher-ranked team (lower rank number) to score the FIFA-ranking gap.<br>
       Win = full gap · Draw (inc. shootout) = half gap · Loss = 0. Uses static 11-Jun-2026 rankings.
     </p>
-    ${lbModeBar()}
-    ${renderLeaderboardTable(rows, 'Points', PRIZES.underdog, v => v % 1 === 0 ? v : v.toFixed(1))}
+    ${renderLeaderboardTable(computeUnderdog, true, 'Points', PRIZES.underdog, v => v % 1 === 0 ? v : v.toFixed(1))}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
@@ -1835,7 +2038,7 @@ function renderUnderdog() {
 function renderFixtures() {
   const el = document.getElementById('tab-fixtures');
 
-  // Build list view grouped by round
+  // Group all matches by round
   const grouped = {};
   for (const m of S.matches) {
     const round = m.round || 'Unknown';
@@ -1847,18 +2050,25 @@ function renderFixtures() {
     return diff !== 0 ? diff : a.localeCompare(b);
   });
 
-  let listHtml = '';
-  for (const round of sortedRounds) {
-    const matches = grouped[round].sort((a, b) =>
-      new Date(a.date + 'T' + (a.time || '00:00')) - new Date(b.date + 'T' + (b.time || '00:00'))
-    );
-    const groupLabel = round + (grouped[round][0]?.group ? ` · Group ${grouped[round][0].group}` : '');
-    listHtml += `<div class="round-header"><span>${groupLabel}</span></div>`;
-    for (const match of matches) listHtml += renderFixtureRow(match);
+  function buildMatchListHtml(filterFn) {
+    let html = '';
+    for (const round of sortedRounds) {
+      const matches = grouped[round]
+        .filter(filterFn)
+        .sort((a, b) => new Date(a.date + 'T' + (a.time || '00:00')) - new Date(b.date + 'T' + (b.time || '00:00')));
+      if (!matches.length) continue;
+      const groupLabel = round + (grouped[round][0]?.group ? ` · Group ${grouped[round][0].group}` : '');
+      html += `<div class="round-header"><span>${groupLabel}</span></div>`;
+      for (const match of matches) html += renderFixtureRow(match);
+    }
+    return html || '<div class="empty-state">Nothing here yet.</div>';
   }
 
-  const bracketHtml = renderBracket();
+  const resultsHtml  = buildMatchListHtml(m => isCompleted(m) || isLive(m));
+  const upcomingHtml = buildMatchListHtml(m => !isCompleted(m) && !isLive(m));
+  const bracketHtml  = renderBracket();
 
+  const v = S.fixtureView;
   el.innerHTML = `
     <div class="sim-toolbar">
       <label>
@@ -1868,19 +2078,20 @@ function renderFixtures() {
         </span>
         Show predictions
       </label>
-      <button class="btn btn-danger" id="reset-btn">↺ Reset predictions</button>
+      <button class="btn btn-danger" id="reset-btn">↺ Reset</button>
       <span class="sim-note">Saved in browser · leaderboards update live</span>
     </div>
 
     <div class="fixture-view-bar">
-      <button class="fv-btn ${S.fixtureView === 'list' ? 'active' : ''}" onclick="setFixtureView('list')">📋 Match List</button>
-      <button class="fv-btn ${S.fixtureView === 'bracket' ? 'active' : ''}" onclick="setFixtureView('bracket')">🏆 Bracket</button>
+      <button class="fv-btn ${v === 'results'  ? 'active' : ''}" onclick="setFixtureView('results')">📊 Results</button>
+      <button class="fv-btn ${v === 'fixtures' ? 'active' : ''}" onclick="setFixtureView('fixtures')">📋 Fixtures</button>
+      <button class="fv-btn ${v === 'bracket'  ? 'active' : ''}" onclick="setFixtureView('bracket')">🏆 Bracket</button>
     </div>
 
-    <div id="fixture-list-view" style="${S.fixtureView === 'list' ? '' : 'display:none'}">${listHtml}</div>
-    <div id="fixture-bracket-view" style="${S.fixtureView === 'bracket' ? '' : 'display:none'}">${bracketHtml}</div>`;
+    <div id="fv-results"  style="${v === 'results'  ? '' : 'display:none'}">${resultsHtml}</div>
+    <div id="fv-fixtures" style="${v === 'fixtures' ? '' : 'display:none'}">${upcomingHtml}</div>
+    <div id="fv-bracket"  style="${v === 'bracket'  ? '' : 'display:none'}">${bracketHtml}</div>`;
 
-  // Toolbar listeners
   document.getElementById('sim-toggle').addEventListener('change', (e) => {
     S.simActive = e.target.checked;
     savePredictions();
@@ -1890,10 +2101,7 @@ function renderFixtures() {
   document.getElementById('reset-btn').addEventListener('click', () => {
     if (confirm('Reset all predictions? This cannot be undone.')) resetPredictions();
   });
-
-  // Score inputs
   el.querySelectorAll('.score-input').forEach(input => input.addEventListener('input', onScoreInput));
-  el.querySelectorAll('.pred-extra-input').forEach(input => input.addEventListener('input', onExtraInput));
 }
 
 // ---- BRACKET VIEW ----
@@ -2012,7 +2220,6 @@ function renderFixtureRow(match) {
   const live      = isLive(match);
   const pred      = S.predictions[match.id];
   const isPred    = !completed && !live && pred && S.simActive;
-
   const rowClass  = completed ? 'completed' : live ? 'live' : isPred ? 'predicted' : '';
 
   let dateStr = '';
@@ -2021,29 +2228,25 @@ function renderFixtureRow(match) {
     dateStr = isNaN(d) ? match.date : d.toLocaleDateString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', timeZone:'UTC' });
   }
 
+  // ---- Desktop score area ----
   let scoreArea = '';
   if (completed) {
     const { home, away } = getNormalScore(match);
-    const ss = getShootoutScore(match);
+    const ss  = getShootoutScore(match);
     const pso = decidedByShootout(match);
     let scoreStr = `${home} – ${away}`;
     if (pso && ss) scoreStr += ` <span style="font-size:0.65rem;color:var(--text-muted)">(${ss.home}–${ss.away} pens)</span>`;
-    scoreArea = `
-      <div class="fixture-score result">${scoreStr}</div>
+    scoreArea = `<div class="fixture-score result">${scoreStr}</div>
       <div class="fixture-date">${dateStr}</div>
       <span class="fixture-status status-final">FT</span>`;
   } else if (live) {
     const { home, away } = getNormalScore(match);
-    scoreArea = `
-      <div class="fixture-score live-score">${home} – ${away}</div>
+    scoreArea = `<div class="fixture-score live-score">${home} – ${away}</div>
       <span class="fixture-status status-live">● LIVE</span>`;
   } else {
-    // Prediction inputs — show actual FT score if there's already one (shouldn't happen for upcoming, but for clarity)
     const ph = pred?.homeGoals ?? '';
     const pa = pred?.awayGoals ?? '';
-    const hasPredScore = ph !== '' && pa !== '';
     scoreArea = `
-      ${hasPredScore ? `<div class="fixture-actual-label">Predicted: ${ph}–${pa}</div>` : ''}
       <div class="score-inputs">
         <input class="score-input" type="number" min="0" max="20" data-match="${match.id}" data-side="home" value="${ph}" placeholder="–">
         <span class="score-sep">–</span>
@@ -2053,48 +2256,56 @@ function renderFixtureRow(match) {
       <span class="fixture-status status-scheduled">${isPred ? '🔮 Predicted' : 'Upcoming'}</span>`;
   }
 
-  // Extra prediction fields for cards/penalties (only for non-completed non-group matches, and only when sim is active)
-  let extraHtml = '';
-  const isKnockout = roundSortKey(match.round) >= 2;
-  if (!completed && !live && S.simActive) {
-    const hc = pred?.homeCards   ?? '';
-    const ac = pred?.awayCards   ?? '';
-    const hp = pred?.homePen     ?? '';
-    const ap = pred?.awayPen     ?? '';
-    extraHtml = `
-      <div class="pred-extra" style="grid-column:1/-1">
-        <span class="pred-extra-group">
-          🟨 ${homeName} cards:
-          <input class="pred-extra-input" type="number" min="0" max="20" data-match="${match.id}" data-side="home" data-field="cards" value="${hc}" placeholder="0">
-        </span>
-        <span class="pred-extra-group">
-          🟨 ${awayName} cards:
-          <input class="pred-extra-input" type="number" min="0" max="20" data-match="${match.id}" data-side="away" data-field="cards" value="${ac}" placeholder="0">
-        </span>
-        <span class="pred-extra-group">
-          ⚽ ${homeName} pens:
-          <input class="pred-extra-input" type="number" min="0" max="20" data-match="${match.id}" data-side="home" data-field="pen" value="${hp}" placeholder="0">
-        </span>
-        <span class="pred-extra-group">
-          ⚽ ${awayName} pens:
-          <input class="pred-extra-input" type="number" min="0" max="20" data-match="${match.id}" data-side="away" data-field="pen" value="${ap}" placeholder="0">
-        </span>
+  // ---- Mobile version ----
+  let mobileHtml = '';
+  if (completed) {
+    const { home, away } = getNormalScore(match);
+    const ss  = getShootoutScore(match);
+    mobileHtml = `
+      <div class="fixture-row-mobile ${rowClass}" data-match-id="${match.id}">
+        <div class="fmob-meta">${dateStr} · <span class="fixture-status status-final">FT</span></div>
+        <div class="fmob-score-row"><span class="fmob-flag">${homeFlag}</span><span class="fmob-name">${homeName}</span><span class="fmob-goals">${home}</span></div>
+        <div class="fmob-sep">–</div>
+        <div class="fmob-score-row"><span class="fmob-flag">${awayFlag}</span><span class="fmob-name">${awayName}</span><span class="fmob-goals">${away}</span></div>
+        ${ss ? `<div style="text-align:center;font-size:0.62rem;color:var(--text-muted);margin-top:2px">(${ss.home}–${ss.away} pens)</div>` : ''}
+      </div>`;
+  } else if (live) {
+    const { home, away } = getNormalScore(match);
+    mobileHtml = `
+      <div class="fixture-row-mobile live" data-match-id="${match.id}">
+        <div class="fmob-meta"><span class="fixture-status status-live">● LIVE</span></div>
+        <div class="fmob-score-row"><span class="fmob-flag">${homeFlag}</span><span class="fmob-name">${homeName}</span><span class="fmob-goals" style="color:var(--green)">${home}</span></div>
+        <div class="fmob-sep">–</div>
+        <div class="fmob-score-row"><span class="fmob-flag">${awayFlag}</span><span class="fmob-name">${awayName}</span><span class="fmob-goals" style="color:var(--green)">${away}</span></div>
+      </div>`;
+  } else {
+    const ph = pred?.homeGoals ?? '';
+    const pa = pred?.awayGoals ?? '';
+    mobileHtml = `
+      <div class="fixture-row-mobile ${rowClass}" data-match-id="${match.id}">
+        <div class="fmob-meta">${dateStr}</div>
+        <div class="fmob-score-row">
+          <span class="fmob-flag">${homeFlag}</span>
+          <span class="fmob-name">${homeName}</span>
+          <input class="fmob-input score-input" type="number" min="0" max="20" data-match="${match.id}" data-side="home" value="${ph}" placeholder="–">
+        </div>
+        <div class="fmob-sep">–</div>
+        <div class="fmob-score-row">
+          <span class="fmob-flag">${awayFlag}</span>
+          <span class="fmob-name">${awayName}</span>
+          <input class="fmob-input score-input" type="number" min="0" max="20" data-match="${match.id}" data-side="away" value="${pa}" placeholder="–">
+        </div>
+        <div class="fmob-status-row"><span class="fixture-status status-scheduled">${isPred ? '🔮 Predicted' : 'Upcoming'}</span></div>
       </div>`;
   }
 
   return `
     <div class="fixture-row ${rowClass}" data-match-id="${match.id}">
-      <div class="fixture-team home">
-        <span class="flag">${homeFlag}</span>
-        <span>${homeName}</span>
-      </div>
+      <div class="fixture-team home"><span class="flag">${homeFlag}</span><span>${homeName}</span></div>
       <div class="fixture-score-area">${scoreArea}</div>
-      <div class="fixture-team away">
-        <span class="flag">${awayFlag}</span>
-        <span>${awayName}</span>
-      </div>
-      ${extraHtml}
-    </div>`;
+      <div class="fixture-team away"><span class="flag">${awayFlag}</span><span>${awayName}</span></div>
+    </div>
+    ${mobileHtml}`;
 }
 
 // ---- INPUT HANDLERS ----
@@ -2187,13 +2398,16 @@ function setLbMode(mode) {
 
 function setFixtureView(view) {
   S.fixtureView = view;
-  const listEl    = document.getElementById('fixture-list-view');
-  const bracketEl = document.getElementById('fixture-bracket-view');
-  if (listEl)    listEl.style.display    = view === 'list'    ? '' : 'none';
-  if (bracketEl) bracketEl.style.display = view === 'bracket' ? '' : 'none';
+  const resultsEl  = document.getElementById('fv-results');
+  const fixturesEl = document.getElementById('fv-fixtures');
+  const bracketEl  = document.getElementById('fv-bracket');
+  if (resultsEl)  resultsEl.style.display  = view === 'results'  ? '' : 'none';
+  if (fixturesEl) fixturesEl.style.display = view === 'fixtures' ? '' : 'none';
+  if (bracketEl)  bracketEl.style.display  = view === 'bracket'  ? '' : 'none';
   // Update button states
   document.querySelectorAll('.fv-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.textContent.toLowerCase().includes(view === 'list' ? 'list' : 'bracket'));
+    const btnView = btn.getAttribute('onclick')?.match(/setFixtureView\('(\w+)'\)/)?.[1];
+    btn.classList.toggle('active', btnView === view);
   });
 }
 
