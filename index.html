@@ -1066,8 +1066,10 @@ const S = {
   teamMap:       {},   // apiTeamId → roster entry (with .apiTeamId, .flag, etc.)
   nameToId:      {},   // lowercased name → apiTeamId
 
-  // Bracket: matchId → { homeFromMatchId, awayFromMatchId, nextMatchId, nextPos }
+  // Bracket graph: matchId → { nextMatchId, nextPos }
   bracketGraph:  {},
+  // Propagated bracket teams: matchId → { home: teamObj, away: teamObj }
+  bracketTeams:  {},
 
   // Simulator
   predictions:   {},   // matchId → { homeGoals, awayGoals, homeCards, awayCards, homePen, awayPen }
@@ -1271,48 +1273,41 @@ function buildBracketGraph() {
   const rounds = {};
   for (const m of S.matches) {
     const key = roundSortKey(m.round);
-    if (key < 2) continue; // skip group stage
+    if (key < 2) continue;
     if (!rounds[key]) rounds[key] = [];
     rounds[key].push(m);
   }
-
-  // Sort each round by date (ascending)
   for (const key of Object.keys(rounds)) {
     rounds[key].sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
   }
 
-  // Pair successive rounds: pair[0] winner → next round home, pair[1] winner → next round away
-  const roundKeys = Object.keys(rounds).map(Number).sort((a,b)=>a-b);
-
   S.bracketGraph = {};
-  for (let ri = 0; ri < roundKeys.length - 1; ri++) {
-    const curKey  = roundKeys[ri];
-    const nextKey = roundKeys[ri + 1];
 
-    // Skip the 3rd-place link (key 6) feeding into the Final (key 7) — they're independent
-    if (curKey === 6) continue;
+  // Explicitly define which round feeds into which (avoids SF→3rd-place bug)
+  const ROUND_PAIRS = [
+    [2, 3],  // R32 winners → R16
+    [3, 4],  // R16 winners → QF
+    [4, 5],  // QF winners  → SF
+    [5, 7],  // SF winners  → Final (key 7, not 6!)
+  ];
 
-    const curMatches  = rounds[curKey];
-    const nextMatches = rounds[nextKey];
-
-    // Separate SF from 3rd-place play-off
-    const isSF = curKey === 5;
+  for (const [curKey, nextKey] of ROUND_PAIRS) {
+    const curMatches  = rounds[curKey]  || [];
+    const nextMatches = rounds[nextKey] || [];
 
     let nextIdx = 0;
     for (let ci = 0; ci < curMatches.length; ci += 2) {
       const m1 = curMatches[ci];
       const m2 = curMatches[ci + 1];
-      const mn = isSF ? nextMatches.find(n => !isThirdPlace(n)) || nextMatches[nextIdx]
-                      : nextMatches[nextIdx];
-      nextIdx++;
-
+      const mn = nextMatches[nextIdx++];
       if (!m1 || !mn) continue;
+
       S.bracketGraph[m1.id] = { nextMatchId: mn.id, nextPos: 'home' };
       if (m2) S.bracketGraph[m2.id] = { nextMatchId: mn.id, nextPos: 'away' };
 
-      // If semi-final, also wire losers into the 3rd-place play-off
-      if (isSF) {
-        const third = nextMatches.find(n => isThirdPlace(n));
+      // SF losers → 3rd-place play-off
+      if (curKey === 5) {
+        const third = (rounds[6] || [])[0];
         if (third) {
           S.bracketGraph[m1.id + '_loser'] = { nextMatchId: third.id, nextPos: 'home' };
           if (m2) S.bracketGraph[m2.id + '_loser'] = { nextMatchId: third.id, nextPos: 'away' };
@@ -1494,11 +1489,10 @@ function computeEffective() {
 }
 
 function propagateBracket() {
-  // Build a mutable lookup from matchId → effectiveMatch (same object references)
-  const byId = {};
-  for (const m of S.effectiveMatches) byId[m.id] = m;
+  // Store propagated teams in a separate map — avoids object mutation issues entirely.
+  // S.bracketTeams[matchId] = { home: teamObj, away: teamObj }
+  S.bracketTeams = {};
 
-  // Process knockout rounds in order so R32 → R16 → QF → SF → Final propagates correctly
   const sorted = [...S.effectiveMatches]
     .filter(m => roundSortKey(m.round) >= 2)
     .sort((a, b) => roundSortKey(a.round) - roundSortKey(b.round) || new Date(a.date||0) - new Date(b.date||0));
@@ -1506,43 +1500,41 @@ function propagateBracket() {
   for (const match of sorted) {
     const graph = S.bracketGraph[match.id];
     if (!graph) continue;
-    if (!isCompleted(match)) continue; // only propagate from matches with a known result
+    if (!isCompleted(match)) continue;
+
+    // Use propagated teams if this match's slots were already filled (chained rounds)
+    const bt = S.bracketTeams[match.id] || {};
+    const homeTeam = bt.home || match.home_team;
+    const awayTeam = bt.away || match.away_team;
 
     const { home: homeG, away: awayG } = getNormalScore(match);
     const pso = decidedByShootout(match);
 
-    // Grab the team objects directly from the match (avoids S.apiTeams ID lookup issues)
-    let winnerTeam = null;
-    let loserTeam  = null;
-
-    if (homeG > awayG) {
-      winnerTeam = match.home_team; loserTeam = match.away_team;
-    } else if (awayG > homeG) {
-      winnerTeam = match.away_team; loserTeam = match.home_team;
-    } else if (pso) {
+    let winnerTeam = null, loserTeam = null;
+    if (homeG > awayG)      { winnerTeam = homeTeam; loserTeam = awayTeam; }
+    else if (awayG > homeG) { winnerTeam = awayTeam; loserTeam = homeTeam; }
+    else if (pso) {
       const ss = getShootoutScore(match);
-      if (ss && ss.home > ss.away) { winnerTeam = match.home_team; loserTeam = match.away_team; }
-      else if (ss && ss.away > ss.home) { winnerTeam = match.away_team; loserTeam = match.home_team; }
+      if (ss && ss.home > ss.away)      { winnerTeam = homeTeam; loserTeam = awayTeam; }
+      else if (ss && ss.away > ss.home) { winnerTeam = awayTeam; loserTeam = homeTeam; }
     }
 
     if (!winnerTeam) continue;
 
-    // Inject winner into the next-round slot
-    const nextMatch = byId[graph.nextMatchId];
-    if (nextMatch && !isCompleted(nextMatch)) {
-      if (graph.nextPos === 'home') nextMatch.home_team = { ...winnerTeam };
-      else                          nextMatch.away_team = { ...winnerTeam };
+    // Store winner for next-round match
+    const nid = graph.nextMatchId;
+    if (nid != null) {
+      if (!S.bracketTeams[nid]) S.bracketTeams[nid] = {};
+      S.bracketTeams[nid][graph.nextPos] = { ...winnerTeam };
     }
 
-    // Inject loser into 3rd-place play-off
+    // Store loser for 3rd-place play-off
     if (loserTeam) {
       const loserGraph = S.bracketGraph[match.id + '_loser'];
       if (loserGraph) {
-        const thirdMatch = byId[loserGraph.nextMatchId];
-        if (thirdMatch && !isCompleted(thirdMatch)) {
-          if (loserGraph.nextPos === 'home') thirdMatch.home_team = { ...loserTeam };
-          else                               thirdMatch.away_team = { ...loserTeam };
-        }
+        const lid = loserGraph.nextMatchId;
+        if (!S.bracketTeams[lid]) S.bracketTeams[lid] = {};
+        S.bracketTeams[lid][loserGraph.nextPos] = { ...loserTeam };
       }
     }
   }
@@ -2270,11 +2262,16 @@ function renderBracket() {
 }
 
 function renderBracketMatch(match, isFinal = false) {
-  const { homeId, awayId } = getMatchTeamIds(match);
+  // Use propagated teams (from S.bracketTeams) when available, else fall back to match data
+  const bt = S.bracketTeams[match.id] || {};
+  const homeTeamObj = bt.home || match.home_team;
+  const awayTeamObj = bt.away || match.away_team;
+  const homeId    = getTeamId(homeTeamObj);
+  const awayId    = getTeamId(awayTeamObj);
   const homeEntry = S.teamMap[homeId];
   const awayEntry = S.teamMap[awayId];
-  const homeName  = getTeamName(match.home_team);
-  const awayName  = getTeamName(match.away_team);
+  const homeName  = getTeamName(homeTeamObj);
+  const awayName  = getTeamName(awayTeamObj);
   const homeFlag  = homeEntry?.flag || '';
   const awayFlag  = awayEntry?.flag || '';
 
