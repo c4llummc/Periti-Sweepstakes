@@ -340,6 +340,35 @@
       transition: all 0.15s;
     }
     .btn:hover { background: var(--border); color: var(--text); }
+    .btn-primary { border-color: #1e3a5f; color: #60a5fa; }
+    .btn-primary:hover { background: rgba(96,165,250,0.12); }
+
+    /* Per-leaderboard sort toggle */
+    .lb-sort-toggle {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .lb-sort-btn {
+      padding: 3px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .lb-sort-btn.active {
+      background: rgba(99,102,241,0.18);
+      border-color: #6366f1;
+      color: #a5b4fc;
+    }
+    .lb-sort-btn:not(.active):hover {
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+    }
     .btn-danger { border-color: #7f1d1d; color: var(--red); }
     .btn-danger:hover { background: rgba(239,68,68,0.1); }
     .sim-note { font-size: 0.75rem; color: var(--text-muted); margin-left: auto; }
@@ -1042,7 +1071,7 @@ const S = {
 
   // Simulator
   predictions:   {},   // matchId → { homeGoals, awayGoals, homeCards, awayCards, homePen, awayPen }
-  simActive:     false,
+  simActive:     true,
 
   // Derived (computed each render cycle)
   effectiveMatches: [], // matches merged with predictions
@@ -1054,6 +1083,9 @@ const S = {
   // UI mode flags
   lbMode:      'actual',    // 'actual' | 'predicted'
   fixtureView: 'list',      // 'list' | 'bracket'
+
+  // Per-leaderboard sort mode: 'actual' | 'predicted'
+  lbSortModes: { cards: 'actual', pen: 'actual', goals: 'actual', fewest: 'actual', underdog: 'actual' },
 };
 
 // =============================================================================
@@ -1371,27 +1403,71 @@ function loadPredictions() {
   try {
     const stored = localStorage.getItem('wc2026_predictions');
     if (stored) S.predictions = JSON.parse(stored);
-    const active = localStorage.getItem('wc2026_simActive');
-    if (active !== null) S.simActive = JSON.parse(active);
   } catch {}
 }
 
 function savePredictions() {
   try {
     localStorage.setItem('wc2026_predictions', JSON.stringify(S.predictions));
-    localStorage.setItem('wc2026_simActive',   JSON.stringify(S.simActive));
   } catch {}
 }
 
 function resetPredictions() {
   S.predictions = {};
-  S.simActive   = false;
+  S.simActive   = true;
   savePredictions();
   computeEffective();
   renderAll();
 }
 
 // Merge actual match data with predictions to produce effective results
+// ---------- SMART PREDICT ----------
+// Poisson random variable (Knuth algorithm)
+function poissonSample(lambda) {
+  const L = Math.exp(-Math.min(lambda, 20));
+  let k = 0, p = 1;
+  do { k++; p *= Math.random(); } while (p > L);
+  return k - 1;
+}
+
+function smartPredict() {
+  const upcoming = S.matches.filter(m => !isCompleted(m) && !isLive(m));
+  if (!upcoming.length) { alert('No remaining fixtures to predict!'); return; }
+
+  // Tuning knobs
+  const BASE      = 1.25;  // avg goals per team per WC match
+  const WEIGHT    = 0.40;  // how much rankings skew expected goals
+  const CHAOS     = 0.55;  // noise on top (captures WC upsets)
+  const MAX_GOALS = 6;
+
+  for (const match of upcoming) {
+    const { homeId, awayId } = getMatchTeamIds(match);
+    const homeRank = S.teamMap[homeId]?.rank ?? 24;  // default to mid-table if unknown
+    const awayRank = S.teamMap[awayId]?.rank ?? 24;
+
+    // rankDiff > 0 → home team has lower (better) FIFA number
+    const rankDiff   = awayRank - homeRank;
+    // tanh maps the gap to (-1, 1): big gap = strong favourite signal
+    const signal     = Math.tanh(rankDiff / 35);
+    // Add random chaos so upsets happen
+    const noise      = (Math.random() - 0.5) * CHAOS * 2;
+    const adjSignal  = signal + noise;
+
+    const homeLambda = Math.max(0.25, BASE * (1 + WEIGHT * adjSignal));
+    const awayLambda = Math.max(0.25, BASE * (1 - WEIGHT * adjSignal));
+
+    S.predictions[match.id] = {
+      ...(S.predictions[match.id] || {}),
+      homeGoals: Math.min(MAX_GOALS, poissonSample(homeLambda)),
+      awayGoals: Math.min(MAX_GOALS, poissonSample(awayLambda)),
+    };
+  }
+
+  savePredictions();
+  computeEffective();
+  renderAll();
+}
+
 function computeEffective() {
   S.effectiveMatches = S.matches.map(m => {
     if (isCompleted(m) || isLive(m)) return { ...m, _source: 'actual' };
@@ -1764,23 +1840,52 @@ function rankCell(pos) {
   return `<td class="rank-cell ${cls}">${icon}</td>`;
 }
 
-function renderLeaderboardTable(scoreFn, higherIsBetter, metricLabel, prizeAmt, formatVal) {
+function renderLeaderboardTable(scoreFn, higherIsBetter, metricLabel, prizeAmt, formatVal, lbKey) {
   const showPred = S.simActive && Object.keys(S.predictions).length > 0;
+  const sortMode = showPred ? (S.lbSortModes[lbKey] || 'actual') : 'actual';
 
-  // Always build actual rows; optionally compute predicted values too
+  // Always compute actual rows
   const actualRows = withMode('actual', () => buildLeaderboard(scoreFn, higherIsBetter));
 
+  // Compute predicted map
   let predMap = {};
   if (showPred) {
     const predRows = withMode('predicted', () => buildLeaderboard(scoreFn, higherIsBetter));
     for (const r of predRows) predMap[r.entry.country] = r.value;
   }
 
+  // Determine display order
+  let displayRows;
+  if (sortMode === 'predicted' && showPred) {
+    displayRows = [...actualRows].sort((a, b) => {
+      const av = predMap[a.entry.country] ?? (higherIsBetter ? -Infinity : Infinity);
+      const bv = predMap[b.entry.country] ?? (higherIsBetter ? -Infinity : Infinity);
+      if (av !== bv) return higherIsBetter ? bv - av : av - bv;
+      return b.entry.rank - a.entry.rank;
+    });
+    // Re-assign positions based on predicted sort
+    for (let i = 0; i < displayRows.length; i++) {
+      const curVal  = predMap[displayRows[i].entry.country];
+      const prevVal = i > 0 ? predMap[displayRows[i - 1].entry.country] : null;
+      displayRows[i].pos = (i === 0 || curVal !== prevVal) ? i + 1 : displayRows[i - 1].pos;
+    }
+  } else {
+    displayRows = actualRows;
+  }
+
+  // Sort toggle (only shown when predictions exist)
+  const toggleHtml = showPred ? `
+    <div class="lb-sort-toggle">
+      <button class="lb-sort-btn ${sortMode === 'actual'    ? 'active' : ''}" onclick="setLbSort('${lbKey}','actual')">Actual</button>
+      <button class="lb-sort-btn ${sortMode === 'predicted' ? 'active' : ''}" onclick="setLbSort('${lbKey}','predicted')">Predicted</button>
+    </div>` : '';
+
   const predHeader = showPred
-    ? `<th class="dual-pred-header" style="text-align:right">+ Predictions</th>`
+    ? `<th class="dual-pred-header" style="text-align:right">Predicted</th>`
     : '';
 
   let html = `
+    ${toggleHtml}
     <div class="lb-table-wrap">
     <table class="lb-table">
       <thead>
@@ -1794,15 +1899,16 @@ function renderLeaderboardTable(scoreFn, higherIsBetter, metricLabel, prizeAmt, 
       </thead>
       <tbody>`;
 
-  for (const row of actualRows) {
+  for (const row of displayRows) {
     const val      = row.value;
     const valStr   = val == null ? '<span class="metric-dash">—</span>' : formatVal(val);
     const predVal  = predMap[row.entry.country];
     const predStr  = showPred
       ? `<td class="dual-pred-cell">${predVal == null ? '—' : formatVal(predVal)}</td>`
       : '';
-    const isLeader = row.pos === 1 && val != null;
-    const prizeStr = isLeader ? `<span class="prize-badge">€${prizeAmt}</span>` : '';
+    const isLeader = row.pos === 1;
+    const prizeStr = isLeader && (sortMode === 'predicted' ? predVal != null : val != null)
+      ? `<span class="prize-badge">€${prizeAmt}</span>` : '';
 
     html += `
       <tr>
@@ -1816,6 +1922,11 @@ function renderLeaderboardTable(scoreFn, higherIsBetter, metricLabel, prizeAmt, 
 
   html += '</tbody></table></div>';
   return html;
+}
+
+function setLbSort(key, mode) {
+  S.lbSortModes[key] = mode;
+  renderAll();
 }
 
 // =============================================================================
@@ -2005,7 +2116,7 @@ function renderCards() {
   el.innerHTML = `
     <div class="sect-title">🟨 Most Cards <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.cards}</span></div>
     <p class="sect-sub">Yellow = 1pt · Double-yellow = 2pts total · Straight red = 3pts.</p>
-    ${renderLeaderboardTable(computeCards, true, 'Points', PRIZES.cards, v => v)}
+    ${renderLeaderboardTable(computeCards, true, 'Points', PRIZES.cards, v => v, 'cards')}
     <div class="caveat-note">⚠️ Figures from manually updated group stage stats — will be refreshed each round.</div>
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
@@ -2016,7 +2127,7 @@ function renderPenalties() {
   el.innerHTML = `
     <div class="sect-title">⚽ Most Penalties Scored <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.penalties}</span></div>
     <p class="sect-sub">In-play penalty goals + successful penalty-shootout kicks, across all matches.</p>
-    ${renderLeaderboardTable(computePenalties, true, 'Penalties', PRIZES.penalties, v => v)}
+    ${renderLeaderboardTable(computePenalties, true, 'Penalties', PRIZES.penalties, v => v, 'pen')}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
@@ -2026,7 +2137,7 @@ function renderGoals() {
   el.innerHTML = `
     <div class="sect-title">🔥 Most Goals / Game <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.goals}</span></div>
     <p class="sect-sub">Average total goals per match (both teams combined, shootouts excluded). High-scoring games — win or lose — push you up.</p>
-    ${renderLeaderboardTable(computeGoalsPerGame, true, 'Avg Goals', PRIZES.goals, v => v.toFixed(2))}
+    ${renderLeaderboardTable(computeGoalsPerGame, true, 'Avg Goals', PRIZES.goals, v => v.toFixed(2), 'goals')}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
@@ -2036,7 +2147,7 @@ function renderFewest() {
   el.innerHTML = `
     <div class="sect-title">🧊 Fewest Goals / Game <span class="prize-badge" style="font-size:0.7rem">€${PRIZES.fewest}</span></div>
     <p class="sect-sub">Same metric as above, lowest average wins. Tight, scrappy games win this one.</p>
-    ${renderLeaderboardTable(computeGoalsPerGame, false, 'Avg Goals', PRIZES.fewest, v => v.toFixed(2))}
+    ${renderLeaderboardTable(computeGoalsPerGame, false, 'Avg Goals', PRIZES.fewest, v => v.toFixed(2), 'fewest')}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
@@ -2049,7 +2160,7 @@ function renderUnderdog() {
       Beat a higher-ranked team (lower rank number) to score the FIFA-ranking gap.<br>
       Win = full gap · Draw (inc. shootout) = half gap · Loss = 0. Uses static 11-Jun-2026 rankings.
     </p>
-    ${renderLeaderboardTable(computeUnderdog, true, 'Points', PRIZES.underdog, v => v % 1 === 0 ? v : v.toFixed(1))}
+    ${renderLeaderboardTable(computeUnderdog, true, 'Points', PRIZES.underdog, v => v % 1 === 0 ? v : v.toFixed(1), 'underdog')}
     <div class="tiebreaker-note">Tiebreaker: higher FIFA rank number (worse-ranked team) wins ties.</div>`;
 }
 
@@ -2090,14 +2201,8 @@ function renderFixtures() {
   const v = S.fixtureView;
   el.innerHTML = `
     <div class="sim-toolbar">
-      <label>
-        <span class="toggle">
-          <input type="checkbox" id="sim-toggle" ${S.simActive ? 'checked' : ''}>
-          <span class="toggle-slider"></span>
-        </span>
-        Show predictions
-      </label>
-      <button class="btn btn-danger" id="reset-btn">↺ Reset</button>
+      <button class="btn btn-primary" id="smart-predict-btn">🧠 Smart Predict</button>
+      <button class="btn btn-danger" id="reset-btn">↺ Reset predictions</button>
       <span class="sim-note">Saved in browser · leaderboards update live</span>
     </div>
 
@@ -2111,12 +2216,7 @@ function renderFixtures() {
     <div id="fv-fixtures" style="${v === 'fixtures' ? '' : 'display:none'}">${upcomingHtml}</div>
     <div id="fv-bracket"  style="${v === 'bracket'  ? '' : 'display:none'}">${bracketHtml}</div>`;
 
-  document.getElementById('sim-toggle').addEventListener('change', (e) => {
-    S.simActive = e.target.checked;
-    savePredictions();
-    computeEffective();
-    renderAll();
-  });
+  document.getElementById('smart-predict-btn').addEventListener('click', smartPredict);
   document.getElementById('reset-btn').addEventListener('click', () => {
     if (confirm('Reset all predictions? This cannot be undone.')) resetPredictions();
   });
