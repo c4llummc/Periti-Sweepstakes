@@ -982,6 +982,16 @@ const MANUAL_CARDS = {
   "Algeria":      1,   // 1Y 0R
 };
 
+// Penalty goals (in-play + shootout) — manually sourced per player, totalled per team.
+// Update by pasting the PKG table to Claude. Last updated: 2026-06-27.
+const MANUAL_PENALTIES = {
+  "Switzerland":   2,
+  "Germany":       1,
+  "England":       1,
+  "Austria":       1,
+  "South Africa":  1,
+};
+
 const PRIZES = {
   placement1: 125,
   placement2: 80,
@@ -1553,29 +1563,38 @@ function computeCards(entry) {
 // ---------- PENALTIES SCORED ----------
 function computePenalties(entry) {
   if (!entry.apiTeamId) return 0;
+
+  // Manual override takes priority (sourced from PKG player stats, totalled per team)
+  if (Object.prototype.hasOwnProperty.call(MANUAL_PENALTIES, entry.country)) {
+    const base = MANUAL_PENALTIES[entry.country];
+    if (S.lbMode === 'predicted') {
+      const predExtra = teamMatches(entry.apiTeamId)
+        .filter(m => m._source === 'predicted')
+        .reduce((sum, m) => {
+          const isHome = getMatchTeamIds(m).homeId === entry.apiTeamId;
+          return sum + (isHome ? (m._pred_home_pen || 0) : (m._pred_away_pen || 0));
+        }, 0);
+      return base + predExtra;
+    }
+    return base;
+  }
+
+  // Fallback: derive from API events
   const matches = teamMatches(entry.apiTeamId);
   let total = 0;
-
   for (const match of matches) {
     if (match._source === 'predicted') {
       const isHome = getMatchTeamIds(match).homeId === entry.apiTeamId;
       total += isHome ? (match._pred_home_pen || 0) : (match._pred_away_pen || 0);
       continue;
     }
-
     const evts = S.events[match.id] || [];
     for (const evt of evts) {
       if (getEventTeamId(evt) !== entry.apiTeamId) continue;
       const type    = (evt.type    || '').toLowerCase();
       const subType = (evt.sub_type || evt.goal_type || '').toLowerCase();
-
-      // In-play penalty goal
-      if ((type === 'goal' || type === 'penalty') && subType === 'penalty') {
-        total += 1;
-      }
-      // Successful penalty-shootout kick
+      if ((type === 'goal' || type === 'penalty') && subType === 'penalty') total += 1;
       if (type.includes('shootout') || type.includes('penalty_kick') || type === 'penalty_kick') {
-        // Count if it was scored (not missed)
         const missed = (evt.missed ?? evt.saved ?? false);
         if (!missed) total += 1;
       }
