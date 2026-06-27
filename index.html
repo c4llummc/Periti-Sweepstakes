@@ -1021,30 +1021,6 @@ const MANUAL_PENALTIES = {
   "South Africa":  1,
 };
 
-// Confirmed R32 pairings where API may show TBD — keyed by both sides
-const KNOWN_R32_OPPONENTS = {
-  'South Africa':        'Canada',
-  'Canada':              'South Africa',
-  'Brazil':              'Japan',
-  'Japan':               'Brazil',
-  'Germany':             'Paraguay',
-  'Paraguay':            'Germany',
-  'Netherlands':         'Morocco',
-  'Morocco':             'Netherlands',
-  "Côte d'Ivoire":       'Norway',
-  'Ivory Coast':         'Norway',
-  'Norway':              "Côte d'Ivoire",
-  'France':              'Sweden',
-  'Sweden':              'France',
-  'United States':       'Bosnia-Herzegovina',
-  'USA':                 'Bosnia-Herzegovina',
-  'Bosnia-Herzegovina':  'United States',
-  'Australia':           'Egypt',
-  'Egypt':               'Australia',
-  'Argentina':           'Cabo Verde',
-  'Cape Verde':          'Argentina',
-  'Cabo Verde':          'Argentina',
-};
 
 const PRIZES = {
   placement1: 125,
@@ -1294,52 +1270,117 @@ function buildTeamMap() {
   }
 }
 
-// Fill in confirmed R32 pairings where the API still shows TBD teams
+// Fill in confirmed R32 pairings where the API still shows TBD teams.
+// Works in two passes:
+//   Pass 1 – name matching (one side already has a real team name)
+//   Pass 2 – positional assignment for fully-TBD slots in date order
 function fillMissingR32Teams() {
-  const getTeamName = t => (t && (t.name || t.full_name || t.country || '')) || '';
-  const isTBD       = t => !t || !getTeamName(t) || /tbd|tba|\?/i.test(getTeamName(t));
+  // All confirmed pairings — order matches the expected bracket schedule
+  const CONFIRMED_R32_PAIRS = [
+    ['South Africa',   'Canada'],
+    ['Brazil',         'Japan'],
+    ['Germany',        'Paraguay'],
+    ['Netherlands',    'Morocco'],
+    ["Côte d'Ivoire",  'Norway'],
+    ['France',         'Sweden'],
+    ['United States',  'Bosnia-Herzegovina'],
+    ['Australia',      'Egypt'],
+    ['Argentina',      'Cabo Verde'],
+  ];
 
-  // Build a name → API team object map for quick lookup
-  const nameToTeamObj = {};
+  const localName = t => (t && (t.name || t.full_name || t.country || '')) || '';
+
+  // A slot is "unknown" if the API hasn't assigned a real team (TBD, null, placeholder, group label)
+  const isUnknown = t => {
+    const n = localName(t);
+    return !n || /tbd|tba|\?|winner|runner.?up|^group /i.test(n);
+  };
+
+  // Build name → API team object map
+  const nameToObj = {};
   for (const t of S.apiTeams) {
     [t.name, t.full_name, t.country, t.abbreviation]
       .filter(Boolean)
-      .forEach(n => nameToTeamObj[n.toLowerCase().trim()] = t);
+      .forEach(n => { nameToObj[n.toLowerCase().trim()] = t; });
   }
 
-  // Helper: find an API team object from a display name using known variants
-  function resolveTeamObj(displayName) {
+  // Find an API team object (or create a display-only placeholder)
+  function resolveObj(displayName) {
     if (!displayName) return null;
     const key = displayName.toLowerCase().trim();
-    // Direct match
-    if (nameToTeamObj[key]) return nameToTeamObj[key];
-    // Check NAME_VARIANTS
+    if (nameToObj[key]) return nameToObj[key];
     const alts = NAME_VARIANTS[key] || [];
     for (const alt of alts) {
-      if (nameToTeamObj[alt]) return nameToTeamObj[alt];
+      if (nameToObj[alt]) return nameToObj[alt];
     }
-    // Fuzzy
-    for (const [k, t] of Object.entries(nameToTeamObj)) {
-      if (k.includes(key) || key.includes(k)) return t;
+    // Fuzzy: any stored name that overlaps meaningfully
+    for (const [k, t] of Object.entries(nameToObj)) {
+      if (k.length > 3 && (k.includes(key) || key.includes(k))) return t;
     }
-    // Return a placeholder object so the name at least displays
     return { name: displayName, full_name: displayName };
   }
 
-  for (const m of S.matches) {
-    if (roundSortKey(m.round) !== 2) continue; // R32 only
+  // Does this team name match one of the pair members?
+  function matchesPair(name, [a, b]) {
+    const n = name.toLowerCase().trim();
+    const check = label => {
+      const lk = label.toLowerCase().trim();
+      const alts = NAME_VARIANTS[lk] || [lk];
+      return alts.some(alt => n === alt || n.includes(alt) || alt.includes(n));
+    };
+    if (check(a)) return 'a';
+    if (check(b)) return 'b';
+    return null;
+  }
 
-    const homeName = getTeamName(m.home_team);
-    const awayName = getTeamName(m.away_team);
-    const homeKnown = KNOWN_R32_OPPONENTS[homeName];
-    const awayKnown = KNOWN_R32_OPPONENTS[awayName];
+  // Sort R32 matches by date for positional assignment
+  const r32 = S.matches
+    .filter(m => roundSortKey(m.round) === 2)
+    .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
 
-    if (homeKnown && isTBD(m.away_team)) {
-      m.away_team = resolveTeamObj(homeKnown);
+  const pairUsed = new Array(CONFIRMED_R32_PAIRS.length).fill(false);
+
+  // --- Pass 1: match by existing team name ---
+  for (const m of r32) {
+    const hName = localName(m.home_team);
+    const aName = localName(m.away_team);
+    const hKnown = !isUnknown(m.home_team);
+    const aKnown = !isUnknown(m.away_team);
+    if (!hKnown && !aKnown) continue; // both unknown — handle in pass 2
+
+    for (let i = 0; i < CONFIRMED_R32_PAIRS.length; i++) {
+      if (pairUsed[i]) continue;
+      const pair = CONFIRMED_R32_PAIRS[i];
+      let matched = false;
+      if (hKnown) {
+        const side = matchesPair(hName, pair);
+        if (side) {
+          if (isUnknown(m.away_team)) m.away_team = resolveObj(side === 'a' ? pair[1] : pair[0]);
+          pairUsed[i] = true; matched = true;
+        }
+      }
+      if (!matched && aKnown) {
+        const side = matchesPair(aName, pair);
+        if (side) {
+          if (isUnknown(m.home_team)) m.home_team = resolveObj(side === 'a' ? pair[1] : pair[0]);
+          pairUsed[i] = true;
+        }
+      }
+      if (pairUsed[i]) break;
     }
-    if (awayKnown && isTBD(m.home_team)) {
-      m.home_team = resolveTeamObj(awayKnown);
-    }
+  }
+
+  // --- Pass 2: positional assignment for fully-unknown slots ---
+  let pi = 0;
+  for (const m of r32) {
+    if (!isUnknown(m.home_team) && !isUnknown(m.away_team)) continue;
+    while (pi < CONFIRMED_R32_PAIRS.length && pairUsed[pi]) pi++;
+    if (pi >= CONFIRMED_R32_PAIRS.length) break; // no more confirmed pairs
+    const [a, b] = CONFIRMED_R32_PAIRS[pi];
+    if (isUnknown(m.home_team)) m.home_team = resolveObj(a);
+    if (isUnknown(m.away_team)) m.away_team = resolveObj(b);
+    pairUsed[pi] = true;
+    pi++;
   }
 }
 
