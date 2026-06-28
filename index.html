@@ -1085,7 +1085,7 @@ const S = {
 
   // UI mode flags
   lbMode:      'actual',    // 'actual' | 'predicted'
-  fixtureView: 'list',      // 'list' | 'bracket'
+  fixtureView: 'bracket',   // 'list' | 'bracket'
 
   // Per-leaderboard sort mode: 'actual' | 'predicted'
   lbSortModes: { cards: 'actual', pen: 'actual', goals: 'actual', fewest: 'actual', underdog: 'actual' },
@@ -2101,7 +2101,10 @@ function generateCommentary(bonusKey, lb, fmt, asc) {
   if (bonusKey === 'goals' || bonusKey === 'fewest') {
     const activeTop   = top.filter(r => !isEliminated(r.entry));
     const elimTop     = top.filter(r =>  isEliminated(r.entry));
-    const advice      = asc ? 'tight, low-scoring affairs (0–0s and 1–0s)' : 'high-scoring thrillers';
+    // Eliminated 2nd/3rd want the LEADER's average to go in the opposite direction
+    // Most Goals leader (high avg) → they want the leader to play low-scoring games to drop
+    // Fewest Goals leader (low avg) → they want the leader to play high-scoring games to rise
+    const advice      = asc ? 'high-scoring, open games' : 'tight, low-scoring affairs';
     const direction   = asc ? 'low' : 'high';
 
     let msg = '';
@@ -2141,10 +2144,10 @@ function generateCommentary(bonusKey, lb, fmt, asc) {
   }
 
   // Cards / Penalties — gap-based commentary
-  if (!second) return `${leader.person} holds the lead unchallenged so far.`;
+  if (!second) return `${leader.flag} ${leader.country} holds the lead unchallenged so far.`;
 
   if (first.value === second.value) {
-    return `🔥 Dead heat between ${first.entry.person} and ${second.entry.person}! Next result will be decisive.`;
+    return `🔥 Dead heat between ${first.entry.flag} ${first.entry.country} and ${second.entry.flag} ${second.entry.country}! Next result will be decisive.`;
   }
 
   const gap = Math.abs(first.value - second.value);
@@ -2152,7 +2155,7 @@ function generateCommentary(bonusKey, lb, fmt, asc) {
   const opp2 = nextOpponent(second.entry);
   const out2 = isEliminated(second.entry);
 
-  let msg = `${second.entry.flag} ${second.entry.country} (${second.entry.person}) is ${gapStr} behind ${leader.person}.`;
+  let msg = `${second.entry.flag} ${second.entry.country} is ${gapStr} behind ${leader.flag} ${leader.country}.`;
   if (out2) msg += ` They're eliminated — their total is final.`;
   else if (opp2) msg += ` Next up: ${opp2}.`;
   return msg;
